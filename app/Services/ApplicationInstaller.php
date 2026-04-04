@@ -29,6 +29,7 @@ class ApplicationInstaller
         $this->prepareRfidReaderEnvironment($command);
         $this->createInitialUser($command, $name, $password);
         $this->createSystemdServices($command);
+        $this->runPostInstallChecks($command);
     }
 
     private function installSystemDependencies(Command $command): void
@@ -39,7 +40,7 @@ class ApplicationInstaller
         $this->runProcessStep(
             $command,
             'Installing required Linux packages',
-            'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer python3 python3-venv python3-pip'
+            'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip'
         );
     }
 
@@ -123,6 +124,11 @@ class ApplicationInstaller
             'RFID_READER_COMMAND',
             sprintf('%s %s', $venvPythonPath, $readerScriptPath)
         );
+
+        $this->setOrAppendEnvironmentValue(
+            'RFID_READ_ONCE_COMMAND',
+            sprintf('%s %s --once --timeout 10', $venvPythonPath, $readerScriptPath)
+        );
     }
 
     private function ensureSqliteDatabaseExists(): void
@@ -170,6 +176,10 @@ class ApplicationInstaller
                 'TonPI RFID Listener',
                 '/usr/bin/env php artisan rfid:listen'
             ),
+            'tonpi-web.service' => $this->buildSystemdService(
+                'TonPI Web Server',
+                '/usr/bin/env php artisan serve --host=0.0.0.0 --port=8000'
+            ),
         ];
 
         foreach ($services as $filename => $contents) {
@@ -179,6 +189,30 @@ class ApplicationInstaller
         $this->runProcessStep($command, 'Reloading systemd daemon', 'systemctl daemon-reload');
         $this->runProcessStep($command, 'Enabling player queue service', 'systemctl enable --now tonpi-player-queue.service');
         $this->runProcessStep($command, 'Enabling RFID listener service', 'systemctl enable --now tonpi-rfid-listener.service');
+        $this->runProcessStep($command, 'Enabling web service', 'systemctl enable --now tonpi-web.service');
+    }
+
+    private function runPostInstallChecks(Command $command): void
+    {
+        $command->info('Running post-install checks...');
+
+        $this->runProcessStep($command, 'Checking mplayer installation', 'command -v mplayer >/dev/null');
+        $this->runProcessStep($command, 'Checking ffprobe installation', 'command -v ffprobe >/dev/null');
+        $this->runProcessStep($command, 'Checking queue service state', 'systemctl is-enabled tonpi-player-queue.service >/dev/null');
+        $this->runProcessStep($command, 'Checking RFID listener service state', 'systemctl is-enabled tonpi-rfid-listener.service >/dev/null');
+        $this->runProcessStep($command, 'Checking web service state', 'systemctl is-enabled tonpi-web.service >/dev/null');
+
+        if (! file_exists('/dev/spidev0.0')) {
+            $command->warn('SPI device /dev/spidev0.0 not found. Enable SPI before using RC522.');
+        }
+
+        if (app()->runningUnitTests()) {
+            return;
+        }
+
+        if (trim((string) shell_exec('amixer scontrols | grep -i PCM')) === '') {
+            $command->warn('No PCM control found via amixer. Check ALSA audio device configuration.');
+        }
     }
 
     private function buildSystemdService(string $description, string $artisanCommand): string

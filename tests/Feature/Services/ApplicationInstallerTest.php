@@ -38,8 +38,9 @@ class ApplicationInstallerTest extends TestCase
         Artisan::shouldReceive('call')->once()->with('db:seed', ['--force' => true])->andReturn(0);
 
         $command = $this->mock(Command::class);
-        $command->shouldReceive('info')->times(6);
-        $command->shouldReceive('line')->times(10);
+        $command->shouldReceive('info')->times(7);
+        $command->shouldReceive('line')->times(16);
+        $command->shouldReceive('warn')->zeroOrMoreTimes();
 
         app()->call([new ApplicationInstaller, 'install'], [
             'command' => $command,
@@ -55,25 +56,30 @@ class ApplicationInstallerTest extends TestCase
 
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-player-queue.service'));
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-rfid-listener.service'));
+        $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-web.service'));
 
         $playerQueueService = file_get_contents(storage_path('framework/testing/systemd/tonpi-player-queue.service'));
         $rfidListenerService = file_get_contents(storage_path('framework/testing/systemd/tonpi-rfid-listener.service'));
+        $webService = file_get_contents(storage_path('framework/testing/systemd/tonpi-web.service'));
 
         $this->assertIsString($playerQueueService);
         $this->assertIsString($rfidListenerService);
+        $this->assertIsString($webService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan queue:work --tries=1 --timeout=0', $playerQueueService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan rfid:listen', $rfidListenerService);
+        $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan serve --host=0.0.0.0 --port=8000', $webService);
 
         $installEnvPath = storage_path('framework/testing/install/.env');
         $this->assertFileExists($installEnvPath);
         $this->assertStringContainsString('RFID_READER_COMMAND="'.base_path('rfid-reader/.venv/bin/python').' '.base_path('rfid-reader/read_rfid.py').'"', (string) file_get_contents($installEnvPath));
+        $this->assertStringContainsString('RFID_READ_ONCE_COMMAND="'.base_path('rfid-reader/.venv/bin/python').' '.base_path('rfid-reader/read_rfid.py').' --once --timeout 10"', (string) file_get_contents($installEnvPath));
 
         Process::assertRan(function ($process) {
             return $process->command === 'apt-get update';
         });
 
         Process::assertRan(function ($process) {
-            return $process->command === 'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer python3 python3-venv python3-pip';
+            return $process->command === 'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip';
         });
 
         Process::assertRan(function ($process) {
@@ -111,6 +117,30 @@ class ApplicationInstallerTest extends TestCase
 
         Process::assertRan(function ($process) {
             return $process->command === 'systemctl enable --now tonpi-rfid-listener.service';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'systemctl enable --now tonpi-web.service';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'command -v mplayer >/dev/null';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'command -v ffprobe >/dev/null';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'systemctl is-enabled tonpi-player-queue.service >/dev/null';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'systemctl is-enabled tonpi-rfid-listener.service >/dev/null';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'systemctl is-enabled tonpi-web.service >/dev/null';
         });
     }
 }
