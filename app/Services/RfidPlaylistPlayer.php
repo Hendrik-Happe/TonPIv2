@@ -1,0 +1,40 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Playlist;
+use Illuminate\Support\Facades\Log;
+
+class RfidPlaylistPlayer
+{
+    public function __construct(
+        private PlayerManager $playerManager,
+        private RfidTagNormalizer $normalizer,
+    ) {}
+
+    public function playForUid(string $uid): ?Playlist
+    {
+        $normalizedUid = $this->normalizer->normalize($uid);
+
+        if ($normalizedUid === null) {
+            return null;
+        }
+
+        $playlist = Playlist::query()->where('rfid_uid', $normalizedUid)->first();
+
+        if ($playlist === null) {
+            Log::info('RFID chip scanned without mapped playlist.', ['rfid_uid' => $normalizedUid]);
+
+            return null;
+        }
+
+        $this->playerManager->playPlaylist($playlist);
+
+        Log::info('Started playlist from RFID chip.', [
+            'rfid_uid' => $normalizedUid,
+            'playlist_id' => $playlist->id,
+        ]);
+
+        return $playlist;
+    }
+}

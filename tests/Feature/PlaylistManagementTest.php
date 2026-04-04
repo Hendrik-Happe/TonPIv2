@@ -149,12 +149,14 @@ class PlaylistManagementTest extends TestCase
         Livewire::actingAs($this->user)
             ->test(Create::class)
             ->set('name', 'My Test Playlist')
+            ->set('rfidUid', 'ab cd 12 34')
             ->set('uploadedFiles', $files)
             ->call('save')
             ->assertRedirect('/playlists');
 
         $this->assertDatabaseHas('playlists', [
             'name' => 'My Test Playlist',
+            'rfid_uid' => 'ABCD1234',
         ]);
 
         $playlist = Playlist::where('name', 'My Test Playlist')->first();
@@ -237,6 +239,21 @@ class PlaylistManagementTest extends TestCase
             ->set('name', 'Test Playlist')
             ->call('save')
             ->assertHasErrors(['tracks']);
+    }
+
+    public function test_playlist_rfid_uid_must_be_unique(): void
+    {
+        Playlist::factory()->create(['rfid_uid' => 'RFID1234']);
+
+        $file = UploadedFile::fake()->create('track-1.mp3', 1024, 'audio/mpeg');
+
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('name', 'Duplicate RFID Playlist')
+            ->set('rfidUid', 'RFID1234')
+            ->set('uploadedFiles', [$file])
+            ->call('save')
+            ->assertHasErrors(['rfidUid']);
     }
 
     public function test_only_audio_files_are_accepted(): void

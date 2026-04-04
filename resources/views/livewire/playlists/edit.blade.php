@@ -22,6 +22,22 @@
             @enderror
         </div>
 
+        <div>
+            <label class="input">
+                <span class="label">{{ __('RFID Chip ID') }}</span>
+                <input
+                    type="text"
+                    wire:model="rfidUid"
+                    placeholder="04A1B2C3D4"
+                    class="grow"
+                >
+            </label>
+            <p class="text-base-content/60 text-sm mt-2">{{ __('Optional. When this chip is scanned, this playlist starts automatically.') }}</p>
+            @error('rfidUid')
+                <p class="text-error text-sm mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+
         <!-- File Upload -->
         <div>
             <label class="block mb-2 font-medium">{{ __('Add New Tracks') }}</label>

@@ -4,6 +4,7 @@ namespace App\Livewire\Playlists;
 
 use App\Models\Playlist;
 use App\Models\Track;
+use App\Services\RfidTagNormalizer;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -18,6 +19,9 @@ class Edit extends Component
     #[Validate('required|string|max:255')]
     public string $name = '';
 
+    #[Validate('nullable|string|max:255')]
+    public string $rfidUid = '';
+
     public array $tracks = [];
 
     public array $uploadedFiles = [];
@@ -26,6 +30,7 @@ class Edit extends Component
     {
         $this->playlist = $playlist;
         $this->name = $playlist->name;
+        $this->rfidUid = $playlist->rfid_uid ?? '';
 
         // Load existing tracks
         foreach ($playlist->tracks as $track) {
@@ -110,10 +115,14 @@ class Edit extends Component
     {
         $this->validate([
             'name' => 'required|string|max:255',
+            'rfidUid' => 'nullable|string|max:255|unique:playlists,rfid_uid,'.$this->playlist->id,
             'tracks' => 'required|array|min:1',
         ]);
 
-        $this->playlist->update(['name' => $this->name]);
+        $this->playlist->update([
+            'name' => $this->name,
+            'rfid_uid' => app(RfidTagNormalizer::class)->normalize($this->rfidUid),
+        ]);
 
         // Get existing track file paths before deletion
         $existingTracks = $this->playlist->tracks->keyBy('id');

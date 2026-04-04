@@ -27,6 +27,7 @@ class ApplicationInstaller
         $this->installProjectDependencies($command);
         $this->initializeLaravel($command);
         $this->createInitialUser($command, $name, $password);
+        $this->createSystemdServices($command);
     }
 
     private function installSystemDependencies(Command $command): void
@@ -106,6 +107,101 @@ class ApplicationInstaller
             ['name' => $name],
             ['password' => Hash::make($password)],
         );
+    }
+
+    private function createSystemdServices(Command $command): void
+    {
+        $command->info('Creating systemd services...');
+
+        $serviceDirectory = $this->systemdServiceDirectory();
+        File::ensureDirectoryExists($serviceDirectory);
+
+        $services = [
+            'tonpi-player-queue.service' => $this->buildSystemdService(
+                'TonPI Player Queue Worker',
+                '/usr/bin/env php artisan queue:work --tries=1 --timeout=0'
+            ),
+            'tonpi-rfid-listener.service' => $this->buildSystemdService(
+                'TonPI RFID Listener',
+                '/usr/bin/env php artisan rfid:listen'
+            ),
+        ];
+
+        foreach ($services as $filename => $contents) {
+            File::put($serviceDirectory.DIRECTORY_SEPARATOR.$filename, $contents);
+        }
+
+        $this->runProcessStep($command, 'Reloading systemd daemon', 'systemctl daemon-reload');
+        $this->runProcessStep($command, 'Enabling player queue service', 'systemctl enable --now tonpi-player-queue.service');
+        $this->runProcessStep($command, 'Enabling RFID listener service', 'systemctl enable --now tonpi-rfid-listener.service');
+    }
+
+    private function buildSystemdService(string $description, string $artisanCommand): string
+    {
+        $serviceUser = $this->serviceUser();
+        $serviceGroup = $this->serviceGroup();
+
+        return implode("\n", [
+            '[Unit]',
+            sprintf('Description=%s', $description),
+            'After=network.target',
+            '',
+            '[Service]',
+            'Type=simple',
+            sprintf('User=%s', $serviceUser),
+            sprintf('Group=%s', $serviceGroup),
+            sprintf('WorkingDirectory=%s', base_path()),
+            sprintf('ExecStart=%s', $artisanCommand),
+            'Restart=always',
+            'RestartSec=5',
+            '',
+            '[Install]',
+            'WantedBy=multi-user.target',
+            '',
+        ]);
+    }
+
+    private function systemdServiceDirectory(): string
+    {
+        if (app()->runningUnitTests()) {
+            return storage_path('framework/testing/systemd');
+        }
+
+        return '/etc/systemd/system';
+    }
+
+    private function serviceUser(): string
+    {
+        if (! function_exists('fileowner') || ! function_exists('posix_getpwuid')) {
+            return 'root';
+        }
+
+        $ownerId = @fileowner(base_path());
+
+        if (! is_int($ownerId)) {
+            return 'root';
+        }
+
+        $owner = @posix_getpwuid($ownerId);
+
+        return is_array($owner) && isset($owner['name']) ? (string) $owner['name'] : 'root';
+    }
+
+    private function serviceGroup(): string
+    {
+        if (! function_exists('filegroup') || ! function_exists('posix_getgrgid')) {
+            return 'root';
+        }
+
+        $groupId = @filegroup(base_path());
+
+        if (! is_int($groupId)) {
+            return 'root';
+        }
+
+        $group = @posix_getgrgid($groupId);
+
+        return is_array($group) && isset($group['name']) ? (string) $group['name'] : 'root';
     }
 
     private function runArtisanStep(string $command, array $arguments = []): void

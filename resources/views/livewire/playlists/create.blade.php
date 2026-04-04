@@ -24,6 +24,21 @@
             @enderror
         </div>
 
+        <div class="form-control mb-6">
+            <label class="label">
+                <span class="label-text">RFID Chip ID</span>
+            </label>
+            <input type="text" wire:model="rfidUid" placeholder="04A1B2C3D4" class="input input-bordered" />
+            <label class="label">
+                <span class="label-text-alt">Optional. When this chip is scanned, this playlist starts automatically.</span>
+            </label>
+            @error('rfidUid')
+                <label class="label">
+                    <span class="label-text-alt text-error">{{ $message }}</span>
+                </label>
+            @enderror
+        </div>
+
         <!-- Upload Audio Files Section -->
         <div class="bg-base-200 p-4 rounded-lg mb-6">
             <h3 class="text-xl font-bold mb-4">Upload Audio Files</h3>

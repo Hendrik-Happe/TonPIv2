@@ -13,6 +13,7 @@ class Playlist extends Model
 
     protected $fillable = [
         'name',
+        'rfid_uid',
     ];
 
     public function tracks()

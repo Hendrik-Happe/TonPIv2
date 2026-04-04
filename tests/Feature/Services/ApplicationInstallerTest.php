@@ -7,6 +7,7 @@ use App\Services\ApplicationInstaller;
 use Illuminate\Console\Command;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Process;
 use Tests\TestCase;
@@ -24,6 +25,7 @@ class ApplicationInstallerTest extends TestCase
         ]);
 
         @unlink(storage_path('framework/testing/install-command.sqlite'));
+        File::deleteDirectory(storage_path('framework/testing/systemd'));
 
         Process::fake();
 
@@ -35,8 +37,8 @@ class ApplicationInstallerTest extends TestCase
         Artisan::shouldReceive('call')->once()->with('db:seed', ['--force' => true])->andReturn(0);
 
         $command = $this->mock(Command::class);
-        $command->shouldReceive('info')->times(4);
-        $command->shouldReceive('line')->times(5);
+        $command->shouldReceive('info')->times(5);
+        $command->shouldReceive('line')->times(8);
 
         app()->call([new ApplicationInstaller, 'install'], [
             'command' => $command,
@@ -49,6 +51,17 @@ class ApplicationInstallerTest extends TestCase
         $this->assertNotNull($user);
         $this->assertSame('Install Admin', $user->name);
         $this->assertTrue(Hash::check('secret-password', $user->password));
+
+        $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-player-queue.service'));
+        $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-rfid-listener.service'));
+
+        $playerQueueService = file_get_contents(storage_path('framework/testing/systemd/tonpi-player-queue.service'));
+        $rfidListenerService = file_get_contents(storage_path('framework/testing/systemd/tonpi-rfid-listener.service'));
+
+        $this->assertIsString($playerQueueService);
+        $this->assertIsString($rfidListenerService);
+        $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan queue:work --tries=1 --timeout=0', $playerQueueService);
+        $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan rfid:listen', $rfidListenerService);
 
         Process::assertRan(function ($process) {
             return $process->command === 'apt-get update';
@@ -68,6 +81,18 @@ class ApplicationInstallerTest extends TestCase
 
         Process::assertRan(function ($process) {
             return $process->command === 'npm run build';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'systemctl daemon-reload';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'systemctl enable --now tonpi-player-queue.service';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === 'systemctl enable --now tonpi-rfid-listener.service';
         });
     }
 }
