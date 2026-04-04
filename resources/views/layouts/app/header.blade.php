@@ -21,6 +21,7 @@
                     <div class="navbar-center hidden lg:flex">
                         <ul class="menu menu-horizontal px-1">
                             <li><a href="{{ route('playlists.index') }}" wire:navigate>{{ __('Playlists') }}</a></li>
+                            <li><a href="{{ route('remote-control') }}" wire:navigate>{{ __('Remote') }}</a></li>
                             <li><a href="{{ route('system-status') }}" wire:navigate>{{ __('Hardware Status') }}</a></li>
                             <li><a href="{{ route('event-history') }}" wire:navigate>{{ __('Event History') }}</a></li>
                         </ul>
@@ -42,6 +43,7 @@
                     <x-app-logo :sidebar="true" href="{{ route('playlists.index') }}" wire:navigate />
                     <ul class="menu mt-6 gap-1">
                         <li><a href="{{ route('playlists.index') }}" wire:navigate>{{ __('Playlists') }}</a></li>
+                        <li><a href="{{ route('remote-control') }}" wire:navigate>{{ __('Remote') }}</a></li>
                         <li><a href="{{ route('system-status') }}" wire:navigate>{{ __('Hardware Status') }}</a></li>
                         <li><a href="{{ route('event-history') }}" wire:navigate>{{ __('Event History') }}</a></li>
                         <li><a href="https://github.com/laravel/livewire-starter-kit" target="_blank">{{ __('Repository') }}</a></li>
