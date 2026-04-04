@@ -4,6 +4,7 @@ namespace App\Livewire\Playlists;
 
 use App\Models\Playlist;
 use App\Models\Track;
+use App\Services\RfidReader;
 use App\Services\RfidTagNormalizer;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Validate;
@@ -21,6 +22,8 @@ class Edit extends Component
 
     #[Validate('nullable|string|max:255')]
     public string $rfidUid = '';
+
+    public ?string $rfidReadFeedback = null;
 
     public array $tracks = [];
 
@@ -109,6 +112,28 @@ class Edit extends Component
             }
         }
         $this->tracks = $ordered;
+    }
+
+    public function readCurrentRfidUid(RfidReader $rfidReader, RfidTagNormalizer $normalizer): void
+    {
+        $rawUid = $rfidReader->readSingleUid();
+
+        if ($rawUid === null) {
+            $this->rfidReadFeedback = 'Kein RFID-Chip erkannt.';
+
+            return;
+        }
+
+        $normalizedUid = $normalizer->normalize($rawUid);
+
+        if ($normalizedUid === null) {
+            $this->rfidReadFeedback = 'RFID-Chip gelesen, aber UID ist ungültig.';
+
+            return;
+        }
+
+        $this->rfidUid = $normalizedUid;
+        $this->rfidReadFeedback = sprintf('RFID UID %s wurde übernommen.', $normalizedUid);
     }
 
     public function save()

@@ -29,6 +29,15 @@
                 <span class="label-text">RFID Chip ID</span>
             </label>
             <input type="text" wire:model="rfidUid" placeholder="04A1B2C3D4" class="input input-bordered" />
+            <div class="mt-2 flex items-center gap-3">
+                <button type="button" class="btn btn-outline btn-sm" wire:click="readCurrentRfidUid" wire:loading.attr="disabled">
+                    <span wire:loading.remove wire:target="readCurrentRfidUid">Chip jetzt einlesen</span>
+                    <span wire:loading wire:target="readCurrentRfidUid" class="loading loading-spinner loading-sm"></span>
+                </button>
+                @if ($rfidReadFeedback)
+                    <span class="text-sm text-base-content/70">{{ $rfidReadFeedback }}</span>
+                @endif
+            </div>
             <label class="label">
                 <span class="label-text-alt">Optional. When this chip is scanned, this playlist starts automatically.</span>
             </label>

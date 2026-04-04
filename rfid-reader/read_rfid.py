@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import argparse
 import signal
 import sys
 import time
@@ -39,7 +40,24 @@ def read_uid_once():
     return "".join(f"{part:02X}" for part in uid)
 
 
-try:
+def read_once_mode(timeout_seconds):
+    deadline = time.time() + timeout_seconds
+
+    while running and time.time() < deadline:
+        seen_uid = read_uid_once()
+
+        if seen_uid is not None:
+            print(f"PRESENT:{seen_uid}", flush=True)
+            return 0
+
+        time.sleep(0.1)
+
+    return 1
+
+
+def read_continuous_mode():
+    global current_uid
+
     while running:
         seen_uid = read_uid_once()
 
@@ -52,6 +70,23 @@ try:
             current_uid = None
 
         time.sleep(0.1)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--once", action="store_true", help="Exit after first detected RFID chip")
+    parser.add_argument("--timeout", type=int, default=10, help="Timeout in seconds for --once mode")
+
+    return parser.parse_args()
+
+
+args = parse_args()
+
+try:
+    if args.once:
+        sys.exit(read_once_mode(max(1, args.timeout)))
+
+    read_continuous_mode()
 except KeyboardInterrupt:
     pass
 finally:

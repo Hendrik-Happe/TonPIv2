@@ -8,6 +8,7 @@ use App\Livewire\Playlists\Index;
 use App\Models\Playlist;
 use App\Models\Track;
 use App\Models\User;
+use App\Services\RfidReader;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -254,6 +255,42 @@ class PlaylistManagementTest extends TestCase
             ->set('uploadedFiles', [$file])
             ->call('save')
             ->assertHasErrors(['rfidUid']);
+    }
+
+    public function test_create_can_read_current_rfid_uid_into_field(): void
+    {
+        $this->mock(RfidReader::class)
+            ->shouldReceive('readSingleUid')
+            ->once()
+            ->andReturn('aa bb cc dd');
+
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->call('readCurrentRfidUid')
+            ->assertSet('rfidUid', 'AABBCCDD');
+    }
+
+    public function test_edit_can_read_current_rfid_uid_into_field(): void
+    {
+        $playlist = Playlist::factory()->create([
+            'name' => 'RFID Edit Playlist',
+            'rfid_uid' => null,
+        ]);
+
+        Track::factory()->create([
+            'playlist_id' => $playlist->id,
+            'track_number' => 1,
+        ]);
+
+        $this->mock(RfidReader::class)
+            ->shouldReceive('readSingleUid')
+            ->once()
+            ->andReturn('11 22 33 44');
+
+        Livewire::actingAs($this->user)
+            ->test(Edit::class, ['playlist' => $playlist])
+            ->call('readCurrentRfidUid')
+            ->assertSet('rfidUid', '11223344');
     }
 
     public function test_only_audio_files_are_accepted(): void
