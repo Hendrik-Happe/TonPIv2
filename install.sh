@@ -38,6 +38,6 @@ echo "[4/4] Installing PHP dependencies..."
 composer install --no-interaction --prefer-dist --optimize-autoloader
 
 echo "Running application installer..."
-php artisan app:install
+php artisan app:install --skip-system-deps
 
 echo "Installation finished."

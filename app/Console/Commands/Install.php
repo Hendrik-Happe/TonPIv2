@@ -8,7 +8,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 use RuntimeException;
 
-#[Signature('app:install')]
+#[Signature('app:install {--skip-system-deps}')] 
 #[Description('Install the application')]
 class Install extends Command
 {
@@ -22,6 +22,8 @@ class Install extends Command
 
             return self::FAILURE;
         }
+
+        $skipSystemDependencies = $this->option('skip-system-deps') === true;
 
         $name = trim((string) $this->ask('Name for the initial user', 'Administrator'));
         $password = (string) $this->secret('Password for the initial user');
@@ -48,7 +50,7 @@ class Install extends Command
         $this->info('Installing the application...');
 
         try {
-            $installer->install($this, $name, $password);
+            $installer->install($this, $name, $password, $skipSystemDependencies);
         } catch (RuntimeException $exception) {
             $this->error($exception->getMessage());
 

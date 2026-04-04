@@ -21,9 +21,14 @@ class ApplicationInstaller
         return function_exists('posix_geteuid') && posix_geteuid() === 0;
     }
 
-    public function install(Command $command, string $name, string $password): void
+    public function install(Command $command, string $name, string $password, bool $skipSystemDependencies = false): void
     {
-        $this->installSystemDependencies($command);
+        if (! $skipSystemDependencies) {
+            $this->installSystemDependencies($command);
+        } else {
+            $command->info('Skipping system dependency installation.');
+        }
+
         $this->installProjectDependencies($command);
         $this->initializeLaravel($command);
         $this->prepareRfidReaderEnvironment($command);
@@ -39,11 +44,40 @@ class ApplicationInstaller
 
         $this->runProcessStep($command, 'Updating package index', 'DEBIAN_FRONTEND=noninteractive apt-get update');
 
-        $this->runProcessStep(
-            $command,
-            'Installing required Linux packages',
-            'DEBIAN_FRONTEND=noninteractive apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip || (DEBIAN_FRONTEND=noninteractive apt-get install -f -y && dpkg --configure -a && DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip)'
-        );
+        try {
+            $this->runProcessStep(
+                $command,
+                'Installing required Linux packages',
+                'DEBIAN_FRONTEND=noninteractive apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip'
+            );
+        } catch (RuntimeException $exception) {
+            $command->warn('Initial package installation failed. Attempting to repair package state...');
+
+            $this->runProcessStep(
+                $command,
+                'Fixing broken packages',
+                'DEBIAN_FRONTEND=noninteractive apt-get install -f -y && dpkg --configure -a'
+            );
+
+            $this->runProcessStep($command, 'Updating package index again', 'DEBIAN_FRONTEND=noninteractive apt-get update');
+
+            try {
+                $this->runProcessStep(
+                    $command,
+                    'Retrying required Linux package installation',
+                    'DEBIAN_FRONTEND=noninteractive apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip'
+                );
+            } catch (RuntimeException $retryException) {
+                $heldPackages = trim(Process::path(base_path())->run('apt-mark showhold')->output());
+                $message = $retryException->getMessage();
+
+                throw new RuntimeException(sprintf(
+                    "%s\nHeld packages: %s\nPlease resolve any held or broken packages before re-running app:install, or use the provided install.sh script.",
+                    $message,
+                    $heldPackages === '' ? 'none' : $heldPackages,
+                ));
+            }
+        }
     }
 
     private function installProjectDependencies(Command $command): void
