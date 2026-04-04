@@ -6,6 +6,9 @@
         "build": "vite build",
         "dev": "vite"
     },
+    "engines": {
+        "node": ">=20.19.0"
+    },
     "dependencies": {
         "@tailwindcss/vite": "^4.1.11",
         "autoprefixer": "^10.4.20",

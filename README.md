@@ -16,7 +16,8 @@ TonPI is an RFID-based music player system with GPIO integration, built using La
 
 - PHP 8.3+
 - Composer
-- Node.js & npm
+- Node.js 20.19+ or 22.12+
+- npm
 - SQLite or PostgreSQL
 - mplayer/ffmpeg for audio playback
 - RFID reader and GPIO hardware (optional for development)
@@ -32,7 +33,7 @@ sudo ./install.sh
 ```
 
 This script will:
-- Install required system packages (PHP, Node.js, Composer, SQLite, mplayer, ffmpeg, etc.)
+- Install required system packages (PHP, Node.js 22 LTS, Composer, SQLite, mplayer, ffmpeg, etc.)
 - Install PHP and Node.js dependencies
 - Run the Laravel application installer
 
