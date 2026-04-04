@@ -26,6 +26,7 @@ class ApplicationInstallerTest extends TestCase
 
         @unlink(storage_path('framework/testing/install-command.sqlite'));
         File::deleteDirectory(storage_path('framework/testing/systemd'));
+        File::deleteDirectory(storage_path('framework/testing/install'));
 
         Process::fake();
 
@@ -37,8 +38,8 @@ class ApplicationInstallerTest extends TestCase
         Artisan::shouldReceive('call')->once()->with('db:seed', ['--force' => true])->andReturn(0);
 
         $command = $this->mock(Command::class);
-        $command->shouldReceive('info')->times(5);
-        $command->shouldReceive('line')->times(8);
+        $command->shouldReceive('info')->times(6);
+        $command->shouldReceive('line')->times(10);
 
         app()->call([new ApplicationInstaller, 'install'], [
             'command' => $command,
@@ -63,12 +64,16 @@ class ApplicationInstallerTest extends TestCase
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan queue:work --tries=1 --timeout=0', $playerQueueService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan rfid:listen', $rfidListenerService);
 
+        $installEnvPath = storage_path('framework/testing/install/.env');
+        $this->assertFileExists($installEnvPath);
+        $this->assertStringContainsString('RFID_READER_COMMAND="'.base_path('rfid-reader/.venv/bin/python').' '.base_path('rfid-reader/read_rfid.py').'"', (string) file_get_contents($installEnvPath));
+
         Process::assertRan(function ($process) {
             return $process->command === 'apt-get update';
         });
 
         Process::assertRan(function ($process) {
-            return $process->command === 'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer';
+            return $process->command === 'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer python3 python3-venv python3-pip';
         });
 
         Process::assertRan(function ($process) {
@@ -81,6 +86,19 @@ class ApplicationInstallerTest extends TestCase
 
         Process::assertRan(function ($process) {
             return $process->command === 'npm run build';
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === sprintf('python3 -m venv %s', escapeshellarg(base_path('rfid-reader/.venv')));
+        });
+
+        Process::assertRan(function ($process) {
+            return $process->command === sprintf(
+                '%s -m pip install --upgrade pip && %s -m pip install -r %s',
+                escapeshellarg(base_path('rfid-reader/.venv/bin/python')),
+                escapeshellarg(base_path('rfid-reader/.venv/bin/python')),
+                escapeshellarg(base_path('rfid-reader/requirements.txt'))
+            );
         });
 
         Process::assertRan(function ($process) {

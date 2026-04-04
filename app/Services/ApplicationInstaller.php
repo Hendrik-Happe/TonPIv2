@@ -26,6 +26,7 @@ class ApplicationInstaller
         $this->installSystemDependencies($command);
         $this->installProjectDependencies($command);
         $this->initializeLaravel($command);
+        $this->prepareRfidReaderEnvironment($command);
         $this->createInitialUser($command, $name, $password);
         $this->createSystemdServices($command);
     }
@@ -38,7 +39,7 @@ class ApplicationInstaller
         $this->runProcessStep(
             $command,
             'Installing required Linux packages',
-            'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer'
+            'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer python3 python3-venv python3-pip'
         );
     }
 
@@ -75,9 +76,53 @@ class ApplicationInstaller
 
     private function ensureEnvironmentFileExists(): void
     {
-        if (! file_exists(base_path('.env'))) {
-            File::copy(base_path('.env.example'), base_path('.env'));
+        $environmentFilePath = $this->environmentFilePath();
+
+        if (! file_exists($environmentFilePath)) {
+            File::ensureDirectoryExists(dirname($environmentFilePath));
+            File::copy(base_path('.env.example'), $environmentFilePath);
         }
+    }
+
+    private function prepareRfidReaderEnvironment(Command $command): void
+    {
+        $command->info('Preparing RFID reader environment...');
+
+        $readerDirectory = base_path('rfid-reader');
+        $requirementsPath = $readerDirectory.DIRECTORY_SEPARATOR.'requirements.txt';
+        $venvPath = $readerDirectory.DIRECTORY_SEPARATOR.'.venv';
+        $venvPythonPath = $venvPath.DIRECTORY_SEPARATOR.'bin'.DIRECTORY_SEPARATOR.'python';
+        $readerScriptPath = $readerDirectory.DIRECTORY_SEPARATOR.'read_rfid.py';
+
+        if (! file_exists($requirementsPath)) {
+            throw new RuntimeException('Missing RFID requirements file at rfid-reader/requirements.txt.');
+        }
+
+        if (! file_exists($readerScriptPath)) {
+            throw new RuntimeException('Missing RFID reader script at rfid-reader/read_rfid.py.');
+        }
+
+        $this->runProcessStep(
+            $command,
+            'Creating Python virtual environment for RFID reader',
+            sprintf('python3 -m venv %s', escapeshellarg($venvPath))
+        );
+
+        $this->runProcessStep(
+            $command,
+            'Installing RFID reader Python dependencies',
+            sprintf(
+                '%s -m pip install --upgrade pip && %s -m pip install -r %s',
+                escapeshellarg($venvPythonPath),
+                escapeshellarg($venvPythonPath),
+                escapeshellarg($requirementsPath)
+            )
+        );
+
+        $this->setOrAppendEnvironmentValue(
+            'RFID_READER_COMMAND',
+            sprintf('%s %s', $venvPythonPath, $readerScriptPath)
+        );
     }
 
     private function ensureSqliteDatabaseExists(): void
@@ -202,6 +247,55 @@ class ApplicationInstaller
         $group = @posix_getgrgid($groupId);
 
         return is_array($group) && isset($group['name']) ? (string) $group['name'] : 'root';
+    }
+
+    private function environmentFilePath(): string
+    {
+        if (app()->runningUnitTests()) {
+            return storage_path('framework/testing/install/.env');
+        }
+
+        return base_path('.env');
+    }
+
+    private function setOrAppendEnvironmentValue(string $key, string $value): void
+    {
+        $environmentFilePath = $this->environmentFilePath();
+
+        if (! file_exists($environmentFilePath)) {
+            return;
+        }
+
+        $environmentFileContents = File::get($environmentFilePath);
+        $normalizedValue = $this->normalizeEnvironmentValue($value);
+        $line = sprintf('%s=%s', $key, $normalizedValue);
+
+        if (preg_match(sprintf('/^%s=.*/m', preg_quote($key, '/')), $environmentFileContents) === 1) {
+            $updatedContents = preg_replace(
+                sprintf('/^%s=.*/m', preg_quote($key, '/')),
+                $line,
+                $environmentFileContents,
+                1
+            );
+
+            if (is_string($updatedContents)) {
+                File::put($environmentFilePath, $updatedContents);
+            }
+
+            return;
+        }
+
+        $suffix = str_ends_with($environmentFileContents, "\n") ? '' : "\n";
+        File::put($environmentFilePath, $environmentFileContents.$suffix.$line."\n");
+    }
+
+    private function normalizeEnvironmentValue(string $value): string
+    {
+        if (preg_match('/\s/', $value) !== 1) {
+            return $value;
+        }
+
+        return '"'.str_replace('"', '\\"', $value).'"';
     }
 
     private function runArtisanStep(string $command, array $arguments = []): void
