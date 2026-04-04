@@ -293,6 +293,62 @@ class PlaylistManagementTest extends TestCase
             ->assertSet('rfidUid', '11223344');
     }
 
+    public function test_index_can_learn_rfid_uid_for_a_playlist(): void
+    {
+        $playlist = Playlist::factory()->create([
+            'name' => 'Learn Playlist',
+            'rfid_uid' => null,
+        ]);
+
+        $this->mock(RfidReader::class)
+            ->shouldReceive('readSingleUid')
+            ->once()
+            ->andReturn('aa bb cc dd');
+
+        Livewire::actingAs($this->user)
+            ->test(Index::class)
+            ->call('learnRfidForPlaylist', $playlist->id)
+            ->assertSet('rfidLearningPlaylistId', $playlist->id)
+            ->assertSet('rfidLearningFeedback', 'RFID UID AABBCCDD wurde mit "Learn Playlist" verknüpft.');
+
+        $this->assertDatabaseHas('playlists', [
+            'id' => $playlist->id,
+            'rfid_uid' => 'AABBCCDD',
+        ]);
+    }
+
+    public function test_index_rfid_learning_reassigns_uid_from_other_playlist(): void
+    {
+        $oldPlaylist = Playlist::factory()->create([
+            'name' => 'Old Playlist',
+            'rfid_uid' => 'AABBCCDD',
+        ]);
+
+        $newPlaylist = Playlist::factory()->create([
+            'name' => 'New Playlist',
+            'rfid_uid' => null,
+        ]);
+
+        $this->mock(RfidReader::class)
+            ->shouldReceive('readSingleUid')
+            ->once()
+            ->andReturn('AA BB CC DD');
+
+        Livewire::actingAs($this->user)
+            ->test(Index::class)
+            ->call('learnRfidForPlaylist', $newPlaylist->id);
+
+        $this->assertDatabaseHas('playlists', [
+            'id' => $newPlaylist->id,
+            'rfid_uid' => 'AABBCCDD',
+        ]);
+
+        $this->assertDatabaseHas('playlists', [
+            'id' => $oldPlaylist->id,
+            'rfid_uid' => null,
+        ]);
+    }
+
     public function test_only_audio_files_are_accepted(): void
     {
         $invalidFile = UploadedFile::fake()->create('document.pdf', 1024, 'application/pdf');

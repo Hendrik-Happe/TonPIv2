@@ -3,11 +3,18 @@
 namespace App\Livewire\Playlists;
 
 use App\Models\Playlist;
+use App\Services\RfidReader;
+use App\Services\RfidTagNormalizer;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use RuntimeException;
 
 class Index extends Component
 {
+    public ?int $rfidLearningPlaylistId = null;
+
+    public ?string $rfidLearningFeedback = null;
+
     #[Computed]
     public function playlists()
     {
@@ -22,6 +29,46 @@ class Index extends Component
         $playlist->delete();
 
         session()->flash('message', "Playlist '{$name}' deleted successfully!");
+    }
+
+    public function learnRfidForPlaylist(int $playlistId, RfidReader $rfidReader, RfidTagNormalizer $normalizer): void
+    {
+        $playlist = Playlist::query()->findOrFail($playlistId);
+
+        try {
+            $rawUid = $rfidReader->readSingleUid();
+        } catch (RuntimeException $exception) {
+            $this->rfidLearningPlaylistId = $playlist->id;
+            $this->rfidLearningFeedback = $exception->getMessage();
+
+            return;
+        }
+
+        if ($rawUid === null) {
+            $this->rfidLearningPlaylistId = $playlist->id;
+            $this->rfidLearningFeedback = 'Kein RFID-Chip erkannt.';
+
+            return;
+        }
+
+        $normalizedUid = $normalizer->normalize($rawUid);
+
+        if ($normalizedUid === null) {
+            $this->rfidLearningPlaylistId = $playlist->id;
+            $this->rfidLearningFeedback = 'RFID-Chip gelesen, aber UID ist ungültig.';
+
+            return;
+        }
+
+        Playlist::query()
+            ->where('rfid_uid', $normalizedUid)
+            ->whereKeyNot($playlist->id)
+            ->update(['rfid_uid' => null]);
+
+        $playlist->update(['rfid_uid' => $normalizedUid]);
+
+        $this->rfidLearningPlaylistId = $playlist->id;
+        $this->rfidLearningFeedback = sprintf('RFID UID %s wurde mit "%s" verknüpft.', $normalizedUid, $playlist->name);
     }
 
     public function render()

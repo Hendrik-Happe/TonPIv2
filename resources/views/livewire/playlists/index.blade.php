@@ -52,6 +52,9 @@
                                 <p class="text-sm opacity-60">
                                     {{ $playlist->tracks->count() }} {{ __('tracks') }}
                                 </p>
+                                <p class="text-xs mt-1 opacity-70">
+                                    {{ __('RFID') }}: {{ $playlist->rfid_uid ?: __('not linked') }}
+                                </p>
                             </div>
                             
                             <div class="dropdown dropdown-end">
@@ -90,6 +93,22 @@
                         @else
                             <p class="text-sm opacity-60 italic mt-4">No tracks</p>
                         @endif
+
+                        <div class="mt-4">
+                            <button
+                                type="button"
+                                class="btn btn-outline btn-sm"
+                                wire:click="learnRfidForPlaylist({{ $playlist->id }})"
+                                wire:loading.attr="disabled"
+                            >
+                                <span wire:loading.remove wire:target="learnRfidForPlaylist({{ $playlist->id }})">{{ __('Chip anlernen') }}</span>
+                                <span wire:loading wire:target="learnRfidForPlaylist({{ $playlist->id }})" class="loading loading-spinner loading-sm"></span>
+                            </button>
+
+                            @if ($rfidLearningPlaylistId === $playlist->id && $rfidLearningFeedback)
+                                <p class="text-xs mt-2 text-base-content/70">{{ $rfidLearningFeedback }}</p>
+                            @endif
+                        </div>
                     </div>
                 </div>
             @endforeach
