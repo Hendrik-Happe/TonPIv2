@@ -14,7 +14,15 @@ class Playlist extends Model
     protected $fillable = [
         'name',
         'rfid_uid',
+        'volume_profile',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'volume_profile' => 'integer',
+        ];
+    }
 
     public function tracks()
     {

@@ -44,6 +44,42 @@ class RfidPlaylistTest extends TestCase
         Queue::assertPushed(PlayTrack::class);
     }
 
+    public function test_rfid_start_applies_playlist_volume_profile_when_defined(): void
+    {
+        $playlist = Playlist::factory()
+            ->has(Track::factory()->count(1))
+            ->create([
+                'rfid_uid' => 'A1B2C3D4',
+                'volume_profile' => 35,
+            ]);
+
+        app(PlayerManager::class)->setVolume(80);
+
+        $startedPlaylist = app(RfidPlaylistPlayer::class)->playForUid('A1 B2 C3 D4');
+
+        $this->assertNotNull($startedPlaylist);
+        $this->assertSame($playlist->id, $startedPlaylist->id);
+        $this->assertSame(35, app(PlayerManager::class)->getState()->volume_percentage);
+    }
+
+    public function test_rfid_start_keeps_current_volume_when_playlist_has_no_profile(): void
+    {
+        $playlist = Playlist::factory()
+            ->has(Track::factory()->count(1))
+            ->create([
+                'rfid_uid' => 'B1C2D3E4',
+                'volume_profile' => null,
+            ]);
+
+        app(PlayerManager::class)->setVolume(62);
+
+        $startedPlaylist = app(RfidPlaylistPlayer::class)->playForUid('B1 C2 D3 E4');
+
+        $this->assertNotNull($startedPlaylist);
+        $this->assertSame($playlist->id, $startedPlaylist->id);
+        $this->assertSame(62, app(PlayerManager::class)->getState()->volume_percentage);
+    }
+
     public function test_listener_command_plays_playlist_for_scanned_uid(): void
     {
         $playlist = Playlist::factory()

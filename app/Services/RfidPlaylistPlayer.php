@@ -28,6 +28,10 @@ class RfidPlaylistPlayer
             return null;
         }
 
+        if ($playlist->volume_profile !== null) {
+            $this->playerManager->setVolume($playlist->volume_profile);
+        }
+
         $this->playerManager->playPlaylist(
             playlist: $playlist,
             source: 'rfid',

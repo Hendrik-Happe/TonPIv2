@@ -21,6 +21,9 @@ class Create extends Component
     #[Validate('nullable|string|max:255|unique:playlists,rfid_uid')]
     public string $rfidUid = '';
 
+    #[Validate('nullable|integer|min:0|max:100')]
+    public int|string|null $volumeProfile = null;
+
     public ?string $rfidReadFeedback = null;
 
     public array $tracks = [];
@@ -131,12 +134,14 @@ class Create extends Component
         $this->validate([
             'name' => 'required|string|max:255',
             'rfidUid' => 'nullable|string|max:255|unique:playlists,rfid_uid',
+            'volumeProfile' => 'nullable|integer|min:0|max:100',
             'tracks' => 'required|array|min:1',
         ]);
 
         $playlist = Playlist::create([
             'name' => $this->name,
             'rfid_uid' => app(RfidTagNormalizer::class)->normalize($this->rfidUid),
+            'volume_profile' => $this->normalizeVolumeProfile(),
         ]);
 
         // Ensure tracks are in the correct order before saving
@@ -163,6 +168,15 @@ class Create extends Component
         foreach ($this->tracks as $index => &$track) {
             $track['track_number'] = $index + 1;
         }
+    }
+
+    private function normalizeVolumeProfile(): ?int
+    {
+        if ($this->volumeProfile === null || $this->volumeProfile === '') {
+            return null;
+        }
+
+        return (int) $this->volumeProfile;
     }
 
     public function render()

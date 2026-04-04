@@ -47,6 +47,25 @@
             @enderror
         </div>
 
+        <div>
+            <label class="input">
+                <span class="label">{{ __('Lautstärke-Profil (%)') }}</span>
+                <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    wire:model="volumeProfile"
+                    placeholder="60"
+                    class="grow"
+                >
+            </label>
+            <p class="text-base-content/60 text-sm mt-2">{{ __('Optional. Wird beim RFID-Start dieser Playlist automatisch gesetzt.') }}</p>
+            @error('volumeProfile')
+                <p class="text-error text-sm mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+
         <!-- File Upload -->
         <div>
             <label class="block mb-2 font-medium">{{ __('Add New Tracks') }}</label>

@@ -179,6 +179,24 @@ class PlaylistManagementTest extends TestCase
         $this->assertGreaterThan(0, count(Storage::disk('public')->files('audio')));
     }
 
+    public function test_can_create_playlist_with_volume_profile(): void
+    {
+        $file = UploadedFile::fake()->create('track-1.mp3', 1024, 'audio/mpeg');
+
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('name', 'Volume Playlist')
+            ->set('volumeProfile', 45)
+            ->set('uploadedFiles', [$file])
+            ->call('save')
+            ->assertRedirect('/playlists');
+
+        $this->assertDatabaseHas('playlists', [
+            'name' => 'Volume Playlist',
+            'volume_profile' => 45,
+        ]);
+    }
+
     public function test_reordered_tracks_are_saved_in_correct_order(): void
     {
         $files = [
@@ -255,6 +273,19 @@ class PlaylistManagementTest extends TestCase
             ->set('uploadedFiles', [$file])
             ->call('save')
             ->assertHasErrors(['rfidUid']);
+    }
+
+    public function test_playlist_volume_profile_must_be_between_0_and_100(): void
+    {
+        $file = UploadedFile::fake()->create('track-1.mp3', 1024, 'audio/mpeg');
+
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('name', 'Invalid Volume Playlist')
+            ->set('volumeProfile', 130)
+            ->set('uploadedFiles', [$file])
+            ->call('save')
+            ->assertHasErrors(['volumeProfile']);
     }
 
     public function test_create_can_read_current_rfid_uid_into_field(): void
@@ -513,6 +544,30 @@ class PlaylistManagementTest extends TestCase
         $this->assertDatabaseHas('playlists', [
             'id' => $playlist->id,
             'name' => 'New Name',
+        ]);
+    }
+
+    public function test_can_update_playlist_volume_profile(): void
+    {
+        $playlist = Playlist::factory()->create([
+            'name' => 'Volume Edit Playlist',
+            'volume_profile' => null,
+        ]);
+
+        Track::factory()->create([
+            'playlist_id' => $playlist->id,
+            'track_number' => 1,
+        ]);
+
+        Livewire::actingAs($this->user)
+            ->test(Edit::class, ['playlist' => $playlist])
+            ->set('volumeProfile', 55)
+            ->call('save')
+            ->assertRedirect('/');
+
+        $this->assertDatabaseHas('playlists', [
+            'id' => $playlist->id,
+            'volume_profile' => 55,
         ]);
     }
 
