@@ -1,6 +1,6 @@
 <x-layouts::auth :title="__('Log in')">
     <div class="flex flex-col gap-6">
-        <x-auth-header :title="__('Log in to your account')" :description="__('Enter your email and password below to log in')" />
+        <x-auth-header :title="__('Log in to your account')" :description="__('Enter your username and password below to log in')" />
 
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
@@ -8,10 +8,10 @@
         <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-6">
             @csrf
 
-            <!-- Email Address -->
+            <!-- Username -->
             <fieldset class="fieldset">
-                <legend class="fieldset-legend">{{ __('Email address') }}</legend>
-                <input name="email" value="{{ old('email') }}" type="email" required autofocus autocomplete="email" placeholder="email@example.com" class="input input-bordered w-full" />
+                <legend class="fieldset-legend">{{ __('Username') }}</legend>
+                <input name="name" value="{{ old('name') }}" type="text" required autofocus autocomplete="username" placeholder="{{ __('Username') }}" class="input input-bordered w-full" />
             </fieldset>
 
             <!-- Password -->

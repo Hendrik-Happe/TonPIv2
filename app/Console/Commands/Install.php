@@ -24,18 +24,11 @@ class Install extends Command
         }
 
         $name = trim((string) $this->ask('Name for the initial user', 'Administrator'));
-        $email = trim((string) $this->ask('Email for the initial user', 'admin@example.com'));
         $password = (string) $this->secret('Password for the initial user');
         $passwordConfirmation = (string) $this->secret('Confirm the password');
 
         if ($name === '') {
             $this->error('The user name is required.');
-
-            return self::FAILURE;
-        }
-
-        if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->error('The email address is invalid.');
 
             return self::FAILURE;
         }
@@ -55,7 +48,7 @@ class Install extends Command
         $this->info('Installing the application...');
 
         try {
-            $installer->install($this, $name, $email, $password);
+            $installer->install($this, $name, $password);
         } catch (RuntimeException $exception) {
             $this->error($exception->getMessage());
 

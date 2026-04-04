@@ -41,11 +41,10 @@ class ApplicationInstallerTest extends TestCase
         app()->call([new ApplicationInstaller, 'install'], [
             'command' => $command,
             'name' => 'Install Admin',
-            'email' => 'install@example.com',
             'password' => 'secret-password',
         ]);
 
-        $user = User::query()->where('email', 'install@example.com')->first();
+        $user = User::query()->where('name', 'Install Admin')->first();
 
         $this->assertNotNull($user);
         $this->assertSame('Install Admin', $user->name);

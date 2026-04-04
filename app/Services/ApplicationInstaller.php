@@ -21,12 +21,12 @@ class ApplicationInstaller
         return function_exists('posix_geteuid') && posix_geteuid() === 0;
     }
 
-    public function install(Command $command, string $name, string $email, string $password): void
+    public function install(Command $command, string $name, string $password): void
     {
         $this->installSystemDependencies($command);
         $this->installProjectDependencies($command);
         $this->initializeLaravel($command);
-        $this->createInitialUser($command, $name, $email, $password);
+        $this->createInitialUser($command, $name, $password);
     }
 
     private function installSystemDependencies(Command $command): void
@@ -98,17 +98,13 @@ class ApplicationInstaller
         }
     }
 
-    private function createInitialUser(Command $command, string $name, string $email, string $password): void
+    private function createInitialUser(Command $command, string $name, string $password): void
     {
         $command->info('Creating the initial user...');
 
         User::query()->updateOrCreate(
-            ['email' => $email],
-            [
-                'name' => $name,
-                'password' => Hash::make($password),
-                'email_verified_at' => now(),
-            ],
+            ['name' => $name],
+            ['password' => Hash::make($password)],
         );
     }
 

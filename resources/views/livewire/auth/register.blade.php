@@ -7,16 +7,10 @@
 
         <form method="POST" action="{{ route('register.store') }}" class="flex flex-col gap-6">
             @csrf
-            <!-- Name -->
+            <!-- Name / Username -->
             <fieldset class="fieldset">
-                <legend class="fieldset-legend">{{ __('Name') }}</legend>
-                <input name="name" value="{{ old('name') }}" type="text" required autofocus autocomplete="name" placeholder="{{ __('Full name') }}" class="input input-bordered w-full" />
-            </fieldset>
-
-            <!-- Email Address -->
-            <fieldset class="fieldset">
-                <legend class="fieldset-legend">{{ __('Email address') }}</legend>
-                <input name="email" value="{{ old('email') }}" type="email" required autocomplete="email" placeholder="email@example.com" class="input input-bordered w-full" />
+                <legend class="fieldset-legend">{{ __('Username') }}</legend>
+                <input name="name" value="{{ old('name') }}" type="text" required autofocus autocomplete="username" placeholder="{{ __('Username') }}" class="input input-bordered w-full" />
             </fieldset>
 
             <!-- Password -->

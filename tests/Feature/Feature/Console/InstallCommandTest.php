@@ -14,16 +14,14 @@ class InstallCommandTest extends TestCase
         $installer->shouldReceive('isRunningAsRoot')->once()->andReturn(true);
         $installer->shouldReceive('install')
             ->once()
-            ->withArgs(function ($command, $name, $email, $password) {
+            ->withArgs(function ($command, $name, $password) {
                 return $command instanceof Install
                     && $name === 'Install Admin'
-                    && $email === 'install@example.com'
                     && $password === 'secret-password';
             });
 
         $this->artisan('app:install')
             ->expectsQuestion('Name for the initial user', 'Install Admin')
-            ->expectsQuestion('Email for the initial user', 'install@example.com')
             ->expectsQuestion('Password for the initial user', 'secret-password')
             ->expectsQuestion('Confirm the password', 'secret-password')
             ->expectsOutput('Installing the application...')
