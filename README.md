@@ -42,7 +42,7 @@ If you prefer to install dependencies manually or are on a different system:
 
 1. Clone the repository:
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/Hendrik-Happe/TonPIv2.git
    cd TonPI
    ```
 
