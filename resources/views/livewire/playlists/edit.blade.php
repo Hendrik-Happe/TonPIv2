@@ -1,0 +1,139 @@
+<div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div class="mb-6">
+        <h1 class="text-2xl sm:text-3xl font-bold">{{ __('Edit Playlist') }}</h1>
+        <p class="text-base-content/60 mt-2">{{ __('Update playlist name and tracks') }}</p>
+    </div>
+
+    <form wire:submit="save" class="space-y-6">
+        <!-- Playlist Name -->
+        <div>
+            <label class="input">
+                <span class="label">{{ __('Playlist Name') }}</span>
+                <input 
+                    type="text" 
+                    wire:model="name" 
+                    placeholder="{{ __('Enter playlist name') }}"
+                    class="grow"
+                    required
+                >
+            </label>
+            @error('name')
+                <p class="text-error text-sm mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+
+        <!-- File Upload -->
+        <div>
+            <label class="block mb-2 font-medium">{{ __('Add New Tracks') }}</label>
+            <input 
+                type="file" 
+                wire:model="uploadedFiles" 
+                class="file-input file-input-primary w-full"
+                accept="audio/*"
+                multiple
+            >
+            @error('uploadedFiles.*')
+                <p class="text-error text-sm mt-1">{{ $message }}</p>
+            @enderror
+            
+            <div wire:loading wire:target="uploadedFiles" class="mt-2">
+                <span class="loading loading-spinner loading-sm"></span>
+                <span class="ml-2 text-sm">{{ __('Processing files...') }}</span>
+            </div>
+        </div>
+
+        <!-- Tracks List -->
+        @if(count($tracks) > 0)
+            <div>
+                <label class="block mb-2 font-medium">{{ __('Tracks') }} ({{ count($tracks) }})</label>
+                
+                <div 
+                    x-data="{
+                        init() {
+                            const el = this.$refs.tracksList;
+                            Sortable.create(el, {
+                                handle: '[data-sort-handle]',
+                                animation: 150,
+                                onEnd: (evt) => {
+                                    const orderedIds = Array.from(el.children).map(child => child.dataset.sortItem);
+                                    $wire.call('updateTrackOrder', orderedIds);
+                                }
+                            });
+                        }
+                    }"
+                    x-ref="tracksList"
+                    class="space-y-2"
+                >
+                    @foreach($tracks as $track)
+                        <div 
+                            class="card card-border bg-base-100"
+                            data-sort-item="{{ $track['id'] }}"
+                        >
+                            <div class="card-body p-3 sm:p-4">
+                                <div class="flex items-center gap-3">
+                                    <!-- Drag Handle -->
+                                    <button 
+                                        type="button"
+                                        data-sort-handle
+                                        class="cursor-move text-base-content/40 hover:text-base-content"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"/>
+                                        </svg>
+                                    </button>
+
+                                    <!-- Track Info -->
+                                    <div class="flex-1 min-w-0">
+                                        <div class="font-medium truncate">{{ $track['title'] }}</div>
+                                        <div class="text-sm text-base-content/60 flex flex-wrap gap-2">
+                                            <span>{{ $track['file_name'] }}</span>
+                                            @if($track['duration'])
+                                                <span>•</span>
+                                                <span>{{ gmdate('i:s', $track['duration']) }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+
+                                    <!-- Remove Button -->
+                                    <button 
+                                        type="button"
+                                        wire:click="removeTrack('{{ $track['id'] }}')"
+                                        class="btn btn-sm btn-ghost btn-circle text-error"
+                                    >
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
+        @error('tracks')
+            <p class="text-error text-sm">{{ $message }}</p>
+        @enderror
+
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row gap-3 pt-4">
+            <button 
+                type="submit" 
+                class="btn btn-primary btn-sm sm:btn-md"
+                wire:loading.attr="disabled"
+            >
+                <span wire:loading.remove wire:target="save">{{ __('Update Playlist') }}</span>
+                <span wire:loading wire:target="save" class="loading loading-spinner loading-sm"></span>
+            </button>
+            
+            <a 
+                href="/" 
+                wire:navigate 
+                class="btn btn-ghost btn-sm sm:btn-md"
+            >
+                {{ __('Cancel') }}
+            </a>
+        </div>
+    </form>
+</div>
