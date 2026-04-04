@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\Playlist;
 use App\Services\PlayerManager;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
@@ -17,6 +18,8 @@ class Home extends Component
 
     public function playPlaylist(int $playlistId): void
     {
+        abort_unless(Auth::check(), 403);
+
         $playlist = Playlist::findOrFail($playlistId);
         $playerManager = app(PlayerManager::class);
         $playerManager->playPlaylist($playlist);

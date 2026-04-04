@@ -1,12 +1,14 @@
 <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 class="text-2xl sm:text-3xl font-bold">{{ __('Your Playlists') }}</h1>
+        @auth
         <a href="/playlists/create" wire:navigate class="btn btn-primary btn-sm sm:btn-md">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
             </svg>
             {{ __('Create') }}
         </a>
+        @endauth
     </div>
 
     @if($this->playlists->isEmpty())
@@ -16,9 +18,11 @@
                     <h2 class="text-3xl sm:text-5xl font-bold">🎵</h2>
                     <h3 class="text-xl sm:text-2xl font-bold mt-4">{{ __('No playlists yet') }}</h3>
                     <p class="py-6">{{ __('Create your first playlist') }}</p>
+                    @auth
                     <a href="/playlists/create" wire:navigate class="btn btn-primary">
                         {{ __('Create New Playlist') }}
                     </a>
+                    @endauth
                 </div>
             </div>
         </div>
@@ -44,6 +48,7 @@
                                 <span class="hidden sm:inline">{{ __('Play') }}</span>
                             </button>
                             
+                            @auth
                             <a 
                                 href="/playlists/{{ $playlist->id }}/edit" 
                                 wire:navigate 
@@ -53,6 +58,7 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2  2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </a>
+                            @endauth
                         </div>
                     </div>
                 </div>
