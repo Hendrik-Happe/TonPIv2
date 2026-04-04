@@ -37,6 +37,8 @@ This script will:
 - Install PHP and Node.js dependencies
 - Run the Laravel application installer
 
+> Running `php artisan app:install` directly is not recommended unless you are in an interactive root shell. The installer relies on interactive prompts for initial user setup and may fail if run in a non-interactive environment.
+
 ### Manual Installation
 
 If you prefer to install dependencies manually or are on a different system:

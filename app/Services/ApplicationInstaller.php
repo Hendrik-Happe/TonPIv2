@@ -37,11 +37,12 @@ class ApplicationInstaller
     {
         $command->info('Installing system dependencies...');
 
-        $this->runProcessStep($command, 'Updating package index', 'apt-get update');
+        $this->runProcessStep($command, 'Updating package index', 'DEBIAN_FRONTEND=noninteractive apt-get update');
+
         $this->runProcessStep(
             $command,
             'Installing required Linux packages',
-            'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip'
+            'DEBIAN_FRONTEND=noninteractive apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip || (DEBIAN_FRONTEND=noninteractive apt-get install -f -y && dpkg --configure -a && DEBIAN_FRONTEND=noninteractive apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip)'
         );
     }
 
