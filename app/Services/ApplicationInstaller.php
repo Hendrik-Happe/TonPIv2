@@ -27,6 +27,7 @@ class ApplicationInstaller
         $this->installProjectDependencies($command);
         $this->initializeLaravel($command);
         $this->prepareRfidReaderEnvironment($command);
+        $this->prepareGpioControlEnvironment($command);
         $this->createInitialUser($command, $name, $password);
         $this->createSystemdServices($command);
         $this->runPostInstallChecks($command);
@@ -131,6 +132,47 @@ class ApplicationInstaller
         );
     }
 
+    private function prepareGpioControlEnvironment(Command $command): void
+    {
+        $command->info('Preparing GPIO control environment...');
+
+        $readerDirectory = base_path('gpio-control');
+        $requirementsPath = $readerDirectory.DIRECTORY_SEPARATOR.'requirements.txt';
+        $venvPath = $readerDirectory.DIRECTORY_SEPARATOR.'.venv';
+        $venvPythonPath = $venvPath.DIRECTORY_SEPARATOR.'bin'.DIRECTORY_SEPARATOR.'python';
+        $readerScriptPath = $readerDirectory.DIRECTORY_SEPARATOR.'read_gpio.py';
+
+        if (! file_exists($requirementsPath)) {
+            throw new RuntimeException('Missing GPIO requirements file at gpio-control/requirements.txt.');
+        }
+
+        if (! file_exists($readerScriptPath)) {
+            throw new RuntimeException('Missing GPIO reader script at gpio-control/read_gpio.py.');
+        }
+
+        $this->runProcessStep(
+            $command,
+            'Creating Python virtual environment for GPIO controls',
+            sprintf('python3 -m venv %s', escapeshellarg($venvPath))
+        );
+
+        $this->runProcessStep(
+            $command,
+            'Installing GPIO control Python dependencies',
+            sprintf(
+                '%s -m pip install --upgrade pip && %s -m pip install -r %s',
+                escapeshellarg($venvPythonPath),
+                escapeshellarg($venvPythonPath),
+                escapeshellarg($requirementsPath)
+            )
+        );
+
+        $this->setOrAppendEnvironmentValue(
+            'GPIO_CONTROL_COMMAND',
+            sprintf('%s %s', $venvPythonPath, $readerScriptPath)
+        );
+    }
+
     private function ensureSqliteDatabaseExists(): void
     {
         if (config('database.default') !== 'sqlite') {
@@ -176,6 +218,10 @@ class ApplicationInstaller
                 'TonPI RFID Listener',
                 '/usr/bin/env php artisan rfid:listen'
             ),
+            'tonpi-gpio-controls.service' => $this->buildSystemdService(
+                'TonPI GPIO Controls',
+                '/usr/bin/env php artisan gpio:listen-controls'
+            ),
             'tonpi-web.service' => $this->buildSystemdService(
                 'TonPI Web Server',
                 '/usr/bin/env php artisan serve --host=0.0.0.0 --port=8000'
@@ -189,6 +235,7 @@ class ApplicationInstaller
         $this->runProcessStep($command, 'Reloading systemd daemon', 'systemctl daemon-reload');
         $this->runProcessStep($command, 'Enabling player queue service', 'systemctl enable --now tonpi-player-queue.service');
         $this->runProcessStep($command, 'Enabling RFID listener service', 'systemctl enable --now tonpi-rfid-listener.service');
+        $this->runProcessStep($command, 'Enabling GPIO controls service', 'systemctl enable --now tonpi-gpio-controls.service');
         $this->runProcessStep($command, 'Enabling web service', 'systemctl enable --now tonpi-web.service');
     }
 
@@ -200,6 +247,7 @@ class ApplicationInstaller
         $this->runProcessStep($command, 'Checking ffprobe installation', 'command -v ffprobe >/dev/null');
         $this->runProcessStep($command, 'Checking queue service state', 'systemctl is-enabled tonpi-player-queue.service >/dev/null');
         $this->runProcessStep($command, 'Checking RFID listener service state', 'systemctl is-enabled tonpi-rfid-listener.service >/dev/null');
+        $this->runProcessStep($command, 'Checking GPIO controls service state', 'systemctl is-enabled tonpi-gpio-controls.service >/dev/null');
         $this->runProcessStep($command, 'Checking web service state', 'systemctl is-enabled tonpi-web.service >/dev/null');
 
         if (! file_exists('/dev/spidev0.0')) {
