@@ -11,41 +11,27 @@
             <input type="hidden" name="token" value="{{ request()->route('token') }}">
 
             <!-- Email Address -->
-            <flux:input
-                name="email"
-                value="{{ request('email') }}"
-                :label="__('Email')"
-                type="email"
-                required
-                autocomplete="email"
-            />
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">{{ __('Email') }}</legend>
+                <input name="email" value="{{ request('email') }}" type="email" required autocomplete="email" class="input input-bordered w-full" />
+            </fieldset>
 
             <!-- Password -->
-            <flux:input
-                name="password"
-                :label="__('Password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                :placeholder="__('Password')"
-                viewable
-            />
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">{{ __('Password') }}</legend>
+                <input name="password" type="password" required autocomplete="new-password" placeholder="{{ __('Password') }}" class="input input-bordered w-full" />
+            </fieldset>
 
             <!-- Confirm Password -->
-            <flux:input
-                name="password_confirmation"
-                :label="__('Confirm password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                :placeholder="__('Confirm password')"
-                viewable
-            />
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">{{ __('Confirm password') }}</legend>
+                <input name="password_confirmation" type="password" required autocomplete="new-password" placeholder="{{ __('Confirm password') }}" class="input input-bordered w-full" />
+            </fieldset>
 
             <div class="flex items-center justify-end">
-                <flux:button type="submit" variant="primary" class="w-full" data-test="reset-password-button">
+                <button type="submit" class="btn btn-primary w-full" data-test="reset-password-button">
                     {{ __('Reset password') }}
-                </flux:button>
+                </button>
             </div>
         </form>
     </div>

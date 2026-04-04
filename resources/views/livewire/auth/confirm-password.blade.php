@@ -10,19 +10,14 @@
         <form method="POST" action="{{ route('password.confirm.store') }}" class="flex flex-col gap-6">
             @csrf
 
-            <flux:input
-                name="password"
-                :label="__('Password')"
-                type="password"
-                required
-                autocomplete="current-password"
-                :placeholder="__('Password')"
-                viewable
-            />
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">{{ __('Password') }}</legend>
+                <input name="password" type="password" required autocomplete="current-password" placeholder="{{ __('Password') }}" class="input input-bordered w-full" />
+            </fieldset>
 
-            <flux:button variant="primary" type="submit" class="w-full" data-test="confirm-password-button">
+            <button class="btn btn-primary w-full" type="submit" data-test="confirm-password-button">
                 {{ __('Confirm') }}
-            </flux:button>
+            </button>
         </form>
     </div>
 </x-layouts::auth>

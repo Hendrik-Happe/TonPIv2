@@ -1,78 +1,50 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
     <head>
         @include('partials.head')
     </head>
-    <body class="min-h-screen bg-white dark:bg-zinc-800">
-        <flux:header container class="border-b border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:sidebar.toggle class="lg:hidden mr-2" icon="bars-2" inset="left" />
+    <body class="min-h-screen bg-base-100">
+        <div class="drawer lg:drawer-open">
+            <input id="app-sidebar" type="checkbox" class="drawer-toggle" />
 
-            <x-app-logo href="{{ route('dashboard') }}" wire:navigate />
+            <div class="drawer-content min-h-screen">
+                <div class="navbar border-b border-base-300 bg-base-100 px-4">
+                    <div class="navbar-start gap-2">
+                        <label for="app-sidebar" class="btn btn-ghost btn-square lg:hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </label>
+                        <x-app-logo href="{{ route('dashboard') }}" wire:navigate />
+                    </div>
 
-            <flux:navbar class="-mb-px max-lg:hidden">
-                <flux:navbar.item icon="layout-grid" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                    {{ __('Dashboard') }}
-                </flux:navbar.item>
-            </flux:navbar>
+                    <div class="navbar-center hidden lg:flex">
+                        <ul class="menu menu-horizontal px-1">
+                            <li><a href="{{ route('dashboard') }}" wire:navigate>{{ __('Dashboard') }}</a></li>
+                        </ul>
+                    </div>
 
-            <flux:spacer />
+                    <div class="navbar-end gap-2">
+                        <a class="btn btn-ghost btn-sm hidden md:inline-flex" href="https://github.com/laravel/livewire-starter-kit" target="_blank">{{ __('Repository') }}</a>
+                        <a class="btn btn-ghost btn-sm hidden md:inline-flex" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">{{ __('Documentation') }}</a>
+                        <x-desktop-user-menu />
+                    </div>
+                </div>
 
-            <flux:navbar class="me-1.5 space-x-0.5 rtl:space-x-reverse py-0!">
-                <flux:tooltip :content="__('Search')" position="bottom">
-                    <flux:navbar.item class="!h-10 [&>div>svg]:size-5" icon="magnifying-glass" href="#" :label="__('Search')" />
-                </flux:tooltip>
-                <flux:tooltip :content="__('Repository')" position="bottom">
-                    <flux:navbar.item
-                        class="h-10 max-lg:hidden [&>div>svg]:size-5"
-                        icon="folder-git-2"
-                        href="https://github.com/laravel/livewire-starter-kit"
-                        target="_blank"
-                        :label="__('Repository')"
-                    />
-                </flux:tooltip>
-                <flux:tooltip :content="__('Documentation')" position="bottom">
-                    <flux:navbar.item
-                        class="h-10 max-lg:hidden [&>div>svg]:size-5"
-                        icon="book-open-text"
-                        href="https://laravel.com/docs/starter-kits#livewire"
-                        target="_blank"
-                        :label="__('Documentation')"
-                    />
-                </flux:tooltip>
-            </flux:navbar>
+                {{ $slot }}
+            </div>
 
-            <x-desktop-user-menu />
-        </flux:header>
-
-        <!-- Mobile Menu -->
-        <flux:sidebar collapsible="mobile" sticky class="lg:hidden border-e border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:sidebar.header>
-                <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
-                <flux:sidebar.collapse class="in-data-flux-sidebar-on-desktop:not-in-data-flux-sidebar-collapsed-desktop:-mr-2" />
-            </flux:sidebar.header>
-
-            <flux:sidebar.nav>
-                <flux:sidebar.group :heading="__('Platform')">
-                    <flux:sidebar.item icon="layout-grid" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>
-                        {{ __('Dashboard')  }}
-                    </flux:sidebar.item>
-                </flux:sidebar.group>
-            </flux:sidebar.nav>
-
-            <flux:spacer />
-
-            <flux:sidebar.nav>
-                <flux:sidebar.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    {{ __('Repository') }}
-                </flux:sidebar.item>
-                <flux:sidebar.item icon="book-open-text" href="https://laravel.com/docs/starter-kits#livewire" target="_blank">
-                    {{ __('Documentation') }}
-                </flux:sidebar.item>
-            </flux:sidebar.nav>
-        </flux:sidebar>
-
-        {{ $slot }}
-
-        @fluxScripts
+            <div class="drawer-side z-40">
+                <label for="app-sidebar" aria-label="close sidebar" class="drawer-overlay"></label>
+                <aside class="min-h-full w-72 bg-base-200 p-4">
+                    <x-app-logo :sidebar="true" href="{{ route('dashboard') }}" wire:navigate />
+                    <ul class="menu mt-6 gap-1">
+                        <li><a href="{{ route('dashboard') }}" wire:navigate>{{ __('Dashboard') }}</a></li>
+                        <li><a href="https://github.com/laravel/livewire-starter-kit" target="_blank">{{ __('Repository') }}</a></li>
+                        <li><a href="https://laravel.com/docs/starter-kits#livewire" target="_blank">{{ __('Documentation') }}</a></li>
+                    </ul>
+                </aside>
+            </div>
+        </div>
     </body>
 </html>

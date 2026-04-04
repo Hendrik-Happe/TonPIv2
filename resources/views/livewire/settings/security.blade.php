@@ -1,38 +1,26 @@
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <flux:heading class="sr-only">{{ __('Security settings') }}</flux:heading>
+    <h2 class="sr-only">{{ __('Security settings') }}</h2>
 
     <x-settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
         <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
-            <flux:input
-                wire:model="current_password"
-                :label="__('Current password')"
-                type="password"
-                required
-                autocomplete="current-password"
-                viewable
-            />
-            <flux:input
-                wire:model="password"
-                :label="__('New password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                viewable
-            />
-            <flux:input
-                wire:model="password_confirmation"
-                :label="__('Confirm password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                viewable
-            />
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">{{ __('Current password') }}</legend>
+                <input wire:model="current_password" type="password" required autocomplete="current-password" class="input input-bordered w-full" />
+            </fieldset>
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">{{ __('New password') }}</legend>
+                <input wire:model="password" type="password" required autocomplete="new-password" class="input input-bordered w-full" />
+            </fieldset>
+            <fieldset class="fieldset">
+                <legend class="fieldset-legend">{{ __('Confirm password') }}</legend>
+                <input wire:model="password_confirmation" type="password" required autocomplete="new-password" class="input input-bordered w-full" />
+            </fieldset>
 
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full" data-test="update-password-button">{{ __('Save') }}</flux:button>
+                    <button class="btn btn-primary w-full" type="submit" data-test="update-password-button">{{ __('Save') }}</button>
                 </div>
 
                 <x-action-message class="me-3" on="password-updated">
@@ -43,197 +31,143 @@
 
         @if ($canManageTwoFactor)
             <section class="mt-12">
-                <flux:heading>{{ __('Two-factor authentication') }}</flux:heading>
-                <flux:subheading>{{ __('Manage your two-factor authentication settings') }}</flux:subheading>
+                <h3 class="text-xl font-semibold">{{ __('Two-factor authentication') }}</h3>
+                <p class="opacity-70">{{ __('Manage your two-factor authentication settings') }}</p>
 
                 <div class="flex flex-col w-full mx-auto space-y-6 text-sm" wire:cloak>
                     @if ($twoFactorEnabled)
                         <div class="space-y-4">
-                            <flux:text>
+                            <p>
                                 {{ __('You will be prompted for a secure, random pin during login, which you can retrieve from the TOTP-supported application on your phone.') }}
-                            </flux:text>
+                            </p>
 
                             <div class="flex justify-start">
-                                <flux:button
-                                    variant="danger"
-                                    wire:click="disable"
-                                >
+                                <button class="btn btn-error" wire:click="disable" type="button">
                                     {{ __('Disable 2FA') }}
-                                </flux:button>
+                                </button>
                             </div>
 
                             <livewire:settings.two-factor.recovery-codes :$requiresConfirmation/>
                         </div>
                     @else
                         <div class="space-y-4">
-                            <flux:text variant="subtle">
+                            <p class="opacity-70">
                                 {{ __('When you enable two-factor authentication, you will be prompted for a secure pin during login. This pin can be retrieved from a TOTP-supported application on your phone.') }}
-                            </flux:text>
+                            </p>
 
-                            <flux:button
-                                variant="primary"
-                                wire:click="enable"
-                            >
+                            <button class="btn btn-primary" wire:click="enable" type="button">
                                 {{ __('Enable 2FA') }}
-                            </flux:button>
+                            </button>
                         </div>
                     @endif
                 </div>
             </section>
 
-            <flux:modal
-                name="two-factor-setup-modal"
-                class="max-w-md md:min-w-md"
-                @close="closeModal"
-                wire:model="showModal"
-            >
-                <div class="space-y-6">
-                    <div class="flex flex-col items-center space-y-4">
-                        <div class="p-0.5 w-auto rounded-full border border-stone-100 dark:border-stone-600 bg-white dark:bg-stone-800 shadow-sm">
-                            <div class="p-2.5 rounded-full border border-stone-200 dark:border-stone-600 overflow-hidden bg-stone-100 dark:bg-stone-200 relative">
-                                <div class="flex items-stretch absolute inset-0 w-full h-full divide-x [&>div]:flex-1 divide-stone-200 dark:divide-stone-300 justify-around opacity-50">
-                                    @for ($i = 1; $i <= 5; $i++)
-                                        <div></div>
-                                    @endfor
-                                </div>
-
-                                <div class="flex flex-col items-stretch absolute w-full h-full divide-y [&>div]:flex-1 inset-0 divide-stone-200 dark:divide-stone-300 justify-around opacity-50">
-                                    @for ($i = 1; $i <= 5; $i++)
-                                        <div></div>
-                                    @endfor
-                                </div>
-
-                                <flux:icon.qr-code class="relative z-20 dark:text-accent-foreground"/>
-                            </div>
-                        </div>
-
+            @if ($showModal)
+                <div class="mt-6 card bg-base-100 border border-base-300 shadow-sm">
+                    <div class="card-body space-y-6">
                         <div class="space-y-2 text-center">
-                            <flux:heading size="lg">{{ $this->modalConfig['title'] }}</flux:heading>
-                            <flux:text>{{ $this->modalConfig['description'] }}</flux:text>
-                        </div>
-                    </div>
-
-                    @if ($showVerificationStep)
-                        <div class="space-y-6">
-                            <div class="flex flex-col items-center space-y-3 justify-center">
-                                <flux:otp
-                                    name="code"
-                                    wire:model="code"
-                                    length="6"
-                                    label="OTP Code"
-                                    label:sr-only
-                                    class="mx-auto"
-                                />
-                            </div>
-
-                            <div class="flex items-center space-x-3">
-                                <flux:button
-                                    variant="outline"
-                                    class="flex-1"
-                                    wire:click="resetVerification"
-                                >
-                                    {{ __('Back') }}
-                                </flux:button>
-
-                                <flux:button
-                                    variant="primary"
-                                    class="flex-1"
-                                    wire:click="confirmTwoFactor"
-                                    x-bind:disabled="$wire.code.length < 6"
-                                >
-                                    {{ __('Confirm') }}
-                                </flux:button>
-                            </div>
-                        </div>
-                    @else
-                        @error('setupData')
-                            <flux:callout variant="danger" icon="x-circle" heading="{{ $message }}"/>
-                        @enderror
-
-                        <div class="flex justify-center">
-                            <div class="relative w-64 overflow-hidden border rounded-lg border-stone-200 dark:border-stone-700 aspect-square">
-                                @empty($qrCodeSvg)
-                                    <div class="absolute inset-0 flex items-center justify-center bg-white dark:bg-stone-700 animate-pulse">
-                                        <flux:icon.loading/>
-                                    </div>
-                                @else
-                                <div x-data class="flex items-center justify-center h-full p-4">
-                                    <div
-                                        class="bg-white p-3 rounded"
-                                        :style="($flux.appearance === 'dark' || ($flux.appearance === 'system' && $flux.dark)) ? 'filter: invert(1) brightness(1.5)' : ''"
-                                    >
-                                            {!! $qrCodeSvg !!}
-                                        </div>
-                                    </div>
-                                @endempty
-                            </div>
+                            <h4 class="text-lg font-semibold">{{ $this->modalConfig['title'] }}</h4>
+                            <p class="opacity-70">{{ $this->modalConfig['description'] }}</p>
                         </div>
 
-                        <div>
-                            <flux:button
-                                :disabled="$errors->has('setupData')"
-                                variant="primary"
-                                class="w-full"
-                                wire:click="showVerificationIfNecessary"
-                            >
-                                {{ $this->modalConfig['buttonText'] }}
-                            </flux:button>
-                        </div>
+                        @if ($showVerificationStep)
+                            <div class="space-y-6">
+                                <div class="flex justify-center">
+                                    <input
+                                        name="code"
+                                        wire:model="code"
+                                        maxlength="6"
+                                        inputmode="numeric"
+                                        autocomplete="one-time-code"
+                                        class="input input-bordered input-lg text-center tracking-[0.6em] max-w-xs"
+                                    />
+                                </div>
 
-                        <div class="space-y-4">
-                            <div class="relative flex items-center justify-center w-full">
-                                <div class="absolute inset-0 w-full h-px top-1/2 bg-stone-200 dark:bg-stone-600"></div>
-                                <span class="relative px-2 text-sm bg-white dark:bg-stone-800 text-stone-600 dark:text-stone-400">
-                                    {{ __('or, enter the code manually') }}
-                                </span>
+                                <div class="flex items-center space-x-3">
+                                    <button class="btn flex-1" wire:click="resetVerification" type="button">
+                                        {{ __('Back') }}
+                                    </button>
+
+                                    <button class="btn btn-primary flex-1" wire:click="confirmTwoFactor" type="button" @disabled(strlen($code) < 6)>
+                                        {{ __('Confirm') }}
+                                    </button>
+                                </div>
                             </div>
+                        @else
+                            @error('setupData')
+                                <div role="alert" class="alert alert-error">
+                                    <span>{{ $message }}</span>
+                                </div>
+                            @enderror
 
-                            <div
-                                class="flex items-center space-x-2"
-                                x-data="{
-                                    copied: false,
-                                    async copy() {
-                                        try {
-                                            await navigator.clipboard.writeText('{{ $manualSetupKey }}');
-                                            this.copied = true;
-                                            setTimeout(() => this.copied = false, 1500);
-                                        } catch (e) {
-                                            console.warn('Could not copy to clipboard');
-                                        }
-                                    }
-                                }"
-                            >
-                                <div class="flex items-stretch w-full border rounded-xl dark:border-stone-700">
-                                    @empty($manualSetupKey)
-                                        <div class="flex items-center justify-center w-full p-3 bg-stone-100 dark:bg-stone-700">
-                                            <flux:icon.loading variant="mini"/>
+                            <div class="flex justify-center">
+                                <div class="relative w-64 overflow-hidden border rounded-lg border-base-300 aspect-square bg-base-100">
+                                    @empty($qrCodeSvg)
+                                        <div class="absolute inset-0 flex items-center justify-center animate-pulse">
+                                            <span class="loading loading-spinner loading-md"></span>
                                         </div>
                                     @else
-                                        <input
-                                            type="text"
-                                            readonly
-                                            value="{{ $manualSetupKey }}"
-                                            class="w-full p-3 bg-transparent outline-none text-stone-900 dark:text-stone-100"
-                                        />
-
-                                        <button
-                                            @click="copy()"
-                                            class="px-3 transition-colors border-l cursor-pointer border-stone-200 dark:border-stone-600"
-                                        >
-                                            <flux:icon.document-duplicate x-show="!copied" variant="outline"></flux:icon>
-                                            <flux:icon.check
-                                                x-show="copied"
-                                                variant="solid"
-                                                class="text-green-500"
-                                            ></flux:icon>
-                                        </button>
+                                        <div class="flex items-center justify-center h-full p-4">
+                                            <div class="bg-white p-3 rounded">{!! $qrCodeSvg !!}</div>
+                                        </div>
                                     @endempty
                                 </div>
                             </div>
-                        </div>
-                    @endif
+
+                            <div>
+                                <button class="btn btn-primary w-full" wire:click="showVerificationIfNecessary" type="button" @disabled($errors->has('setupData'))>
+                                    {{ $this->modalConfig['buttonText'] }}
+                                </button>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div class="divider">{{ __('or, enter the code manually') }}</div>
+
+                                <div
+                                    class="flex items-center space-x-2"
+                                    x-data="{
+                                        copied: false,
+                                        async copy() {
+                                            try {
+                                                await navigator.clipboard.writeText('{{ $manualSetupKey }}');
+                                                this.copied = true;
+                                                setTimeout(() => this.copied = false, 1500);
+                                            } catch (e) {
+                                                console.warn('Could not copy to clipboard');
+                                            }
+                                        }
+                                    }"
+                                >
+                                    <div class="join w-full">
+                                        @empty($manualSetupKey)
+                                            <div class="join-item w-full p-3 bg-base-200 text-center">
+                                                <span class="loading loading-spinner loading-sm"></span>
+                                            </div>
+                                        @else
+                                            <input
+                                                type="text"
+                                                readonly
+                                                value="{{ $manualSetupKey }}"
+                                                class="input input-bordered join-item w-full"
+                                            />
+
+                                            <button @click="copy()" type="button" class="btn join-item">
+                                                <span x-show="!copied">Copy</span>
+                                                <span x-show="copied">Done</span>
+                                            </button>
+                                        @endempty
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end">
+                                <button class="btn btn-ghost" wire:click="closeModal" type="button">{{ __('Close') }}</button>
+                            </div>
+                        @endif
+                    </div>
                 </div>
-            </flux:modal>
+            @endif
         @endif
     </x-settings.layout>
 </section>

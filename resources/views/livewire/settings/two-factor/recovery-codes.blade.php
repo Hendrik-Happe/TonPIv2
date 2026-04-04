@@ -5,49 +5,45 @@
 >
     <div class="px-6 space-y-2">
         <div class="flex items-center gap-2">
-            <flux:icon.lock-closed variant="outline" class="size-4"/>
-            <flux:heading size="lg" level="3">{{ __('2FA recovery codes') }}</flux:heading>
+            <span class="badge badge-outline">2FA</span>
+            <h4 class="text-lg font-semibold">{{ __('2FA recovery codes') }}</h4>
         </div>
-        <flux:text variant="subtle">
+        <p class="opacity-70">
             {{ __('Recovery codes let you regain access if you lose your 2FA device. Store them in a secure password manager.') }}
-        </flux:text>
+        </p>
     </div>
 
     <div class="px-6">
         <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <flux:button
+            <button
                 x-show="!showRecoveryCodes"
-                icon="eye"
-                icon:variant="outline"
-                variant="primary"
+                class="btn btn-primary"
                 @click="showRecoveryCodes = true;"
                 aria-expanded="false"
                 aria-controls="recovery-codes-section"
             >
                 {{ __('View recovery codes') }}
-            </flux:button>
+            </button>
 
-            <flux:button
+            <button
                 x-show="showRecoveryCodes"
-                icon="eye-slash"
-                icon:variant="outline"
-                variant="primary"
+                class="btn btn-primary"
                 @click="showRecoveryCodes = false"
                 aria-expanded="true"
                 aria-controls="recovery-codes-section"
             >
                 {{ __('Hide recovery codes') }}
-            </flux:button>
+            </button>
 
             @if (filled($recoveryCodes))
-                <flux:button
+                <button
                     x-show="showRecoveryCodes"
-                    icon="arrow-path"
-                    variant="filled"
+                    class="btn"
                     wire:click="regenerateRecoveryCodes"
+                    type="button"
                 >
                     {{ __('Regenerate codes') }}
-                </flux:button>
+                </button>
             @endif
         </div>
 
@@ -60,7 +56,7 @@
         >
             <div class="mt-3 space-y-3">
                 @error('recoveryCodes')
-                    <flux:callout variant="danger" icon="x-circle" heading="{{$message}}"/>
+                    <div role="alert" class="alert alert-error"><span>{{ $message }}</span></div>
                 @enderror
 
                 @if (filled($recoveryCodes))
@@ -79,9 +75,9 @@
                             </div>
                         @endforeach
                     </div>
-                    <flux:text variant="subtle" class="text-xs">
+                    <p class="text-xs opacity-70">
                         {{ __('Each recovery code can be used once to access your account and will be removed after use. If you need more, click Regenerate codes above.') }}
-                    </flux:text>
+                    </p>
                 @endif
             </div>
         </div>
