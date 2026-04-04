@@ -9,8 +9,6 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', Home::class)->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::view('dashboard', 'dashboard')->name('dashboard');
-
     // Playlist Management
     Route::get('/playlists', PlaylistsIndex::class)->name('playlists.index');
     Route::get('/playlists/create', PlaylistsCreate::class)->name('playlists.create');

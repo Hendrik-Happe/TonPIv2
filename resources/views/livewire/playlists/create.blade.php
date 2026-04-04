@@ -146,7 +146,7 @@
             <button type="submit" class="btn btn-primary" @disabled(count($tracks) === 0)>
                 Create Playlist
             </button>
-            <a href="/dashboard" wire:navigate class="btn btn-ghost">
+            <a href="{{ route('playlists.index') }}" wire:navigate class="btn btn-ghost">
                 Cancel
             </a>
         </div>

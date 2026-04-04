@@ -186,7 +186,7 @@ class PlayerTest extends TestCase
     {
         $user = User::factory()->create();
 
-        $response = $this->actingAs($user)->get('/dashboard');
+        $response = $this->actingAs($user)->get(route('playlists.index'));
 
         $response->assertStatus(200);
         $response->assertSeeLivewire('player');
