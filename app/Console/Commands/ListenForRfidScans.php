@@ -40,7 +40,7 @@ class ListenForRfidScans extends Command
 
                 if ($event === 'removed') {
                     if ($lastUid === $normalizedUid) {
-                        $playerManager->pause();
+                        $playerManager->pause('rfid', 'removed', $normalizedUid);
                         $this->info(sprintf('Paused playback because RFID chip %s was removed.', $normalizedUid));
                     }
 

@@ -13,6 +13,6 @@ class PlayPlaylist
 
     public function execute(Playlist $playlist): void
     {
-        $this->playerManager->playPlaylist($playlist);
+        $this->playerManager->playPlaylist($playlist, 'ui', 'manual');
     }
 }

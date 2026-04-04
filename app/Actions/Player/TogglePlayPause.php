@@ -12,6 +12,6 @@ class TogglePlayPause
 
     public function execute(): void
     {
-        $this->playerManager->togglePlayPause();
+        $this->playerManager->togglePlayPause('ui', 'manual');
     }
 }

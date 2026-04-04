@@ -44,6 +44,13 @@ class GpioControlTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(1, app(PlayerManager::class)->getState()->current_position);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'next',
+            'source' => 'gpio',
+            'playlist_id' => $playlist->id,
+            'trigger' => 'NEXT',
+        ]);
     }
 
     public function test_gpio_previous_event_goes_to_previous_track(): void
@@ -71,6 +78,13 @@ class GpioControlTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame(0, app(PlayerManager::class)->getState()->current_position);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'previous',
+            'source' => 'gpio',
+            'playlist_id' => $playlist->id,
+            'trigger' => 'PREVIOUS',
+        ]);
     }
 
     public function test_gpio_volume_up_event_increases_volume(): void

@@ -12,6 +12,6 @@ class PreviousTrack
 
     public function execute(): void
     {
-        $this->playerManager->previous();
+        $this->playerManager->previous('ui', 'manual');
     }
 }

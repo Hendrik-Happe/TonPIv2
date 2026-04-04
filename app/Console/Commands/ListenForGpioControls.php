@@ -24,11 +24,11 @@ class ListenForGpioControls extends Command
 
                 switch ($upperEvent) {
                     case 'PREVIOUS':
-                        $playerManager->previous();
+                        $playerManager->previous('gpio', 'PREVIOUS');
                         $this->info('GPIO action: previous track');
                         break;
                     case 'NEXT':
-                        $playerManager->next();
+                        $playerManager->next('gpio', 'NEXT');
                         $this->info('GPIO action: next track');
                         break;
                     case 'VOLUME_DOWN':

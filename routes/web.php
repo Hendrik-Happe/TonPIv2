@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\EventHistory;
 use App\Livewire\Home;
 use App\Livewire\Playlists\Create as PlaylistsCreate;
 use App\Livewire\Playlists\Edit as PlaylistsEdit;
@@ -15,6 +16,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/playlists/create', PlaylistsCreate::class)->name('playlists.create');
     Route::get('/playlists/{playlist}/edit', PlaylistsEdit::class)->name('playlists.edit');
     Route::get('/system-status', SystemStatus::class)->name('system-status');
+    Route::get('/event-history', EventHistory::class)->name('event-history');
 });
 
 require __DIR__.'/settings.php';

@@ -12,6 +12,6 @@ class SkipTrack
 
     public function execute(): void
     {
-        $this->playerManager->next();
+        $this->playerManager->next('ui', 'manual');
     }
 }

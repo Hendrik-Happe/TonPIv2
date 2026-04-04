@@ -13,7 +13,7 @@ class PlayerManager
 
     private string $fifoPath;
 
-    public function __construct()
+    public function __construct(private PlaybackEventLogger $eventLogger)
     {
         $this->state = PlayerState::global();
         $this->fifoPath = config('player.player.fifo_path');
@@ -23,9 +23,13 @@ class PlayerManager
     /**
      * Start playing a new playlist from the beginning.
      */
-    public function playPlaylist(Playlist $playlist): void
-    {
-        $this->stop();
+    public function playPlaylist(
+        Playlist $playlist,
+        string $source = 'system',
+        ?string $trigger = null,
+        ?string $rfidUid = null,
+    ): void {
+        $this->stop($source, $trigger, false);
 
         $tracks = $playlist->tracks()->orderBy('track_number')->get();
 
@@ -41,6 +45,14 @@ class PlayerManager
         ]);
 
         $this->playTrackAtPosition(0);
+
+        $this->eventLogger->log(
+            action: 'started',
+            source: $source,
+            playlistId: $playlist->id,
+            rfidUid: $rfidUid,
+            trigger: $trigger,
+        );
     }
 
     /**
@@ -80,8 +92,11 @@ class PlayerManager
     /**
      * Pause the current track.
      */
-    public function pause(): void
-    {
+    public function pause(
+        string $source = 'system',
+        ?string $trigger = null,
+        ?string $rfidUid = null,
+    ): void {
         if (! $this->state->isPlaying()) {
             return;
         }
@@ -91,20 +106,51 @@ class PlayerManager
         }
 
         $this->state->update(['status' => 'paused']);
+
+        $this->eventLogger->log(
+            action: 'paused',
+            source: $source,
+            playlistId: $this->state->current_playlist_id,
+            trackId: $this->state->current_track_id,
+            rfidUid: $rfidUid,
+            trigger: $trigger,
+        );
     }
 
     /**
      * Resume the current track.
      */
-    public function resume(): void
-    {
+    public function resume(
+        string $source = 'system',
+        ?string $trigger = null,
+        ?string $rfidUid = null,
+    ): void {
         if ($this->state->isPaused()) {
             if ($this->isMplayerProcessRunning()) {
                 $this->sendCommandToFifo('pause');
                 $this->state->update(['status' => 'playing']);
+
+                $this->eventLogger->log(
+                    action: 'resumed',
+                    source: $source,
+                    playlistId: $this->state->current_playlist_id,
+                    trackId: $this->state->current_track_id,
+                    rfidUid: $rfidUid,
+                    trigger: $trigger,
+                );
             } else {
                 // Process died, restart current track
                 $this->playTrackAtPosition($this->state->current_position);
+
+                $this->eventLogger->log(
+                    action: 'resumed',
+                    source: $source,
+                    playlistId: $this->state->current_playlist_id,
+                    trackId: $this->state->current_track_id,
+                    rfidUid: $rfidUid,
+                    trigger: $trigger,
+                    context: ['mode' => 'restart-current-track'],
+                );
             }
         }
     }
@@ -112,45 +158,79 @@ class PlayerManager
     /**
      * Toggle between play and pause.
      */
-    public function togglePlayPause(): void
-    {
+    public function togglePlayPause(
+        string $source = 'system',
+        ?string $trigger = null,
+        ?string $rfidUid = null,
+    ): void {
         if ($this->state->isPlaying()) {
-            $this->pause();
+            $this->pause($source, $trigger, $rfidUid);
         } elseif ($this->state->isPaused()) {
-            $this->resume();
+            $this->resume($source, $trigger, $rfidUid);
         }
     }
 
     /**
      * Skip to the next track.
      */
-    public function next(): void
-    {
+    public function next(
+        string $source = 'system',
+        ?string $trigger = null,
+        ?string $rfidUid = null,
+    ): void {
         if (! $this->state->current_playlist_id) {
             return;
         }
 
         $this->playTrackAtPosition($this->state->current_position + 1);
+
+        $this->eventLogger->log(
+            action: 'next',
+            source: $source,
+            playlistId: $this->state->current_playlist_id,
+            trackId: $this->state->current_track_id,
+            rfidUid: $rfidUid,
+            trigger: $trigger,
+        );
     }
 
     /**
      * Go to the previous track.
      */
-    public function previous(): void
-    {
+    public function previous(
+        string $source = 'system',
+        ?string $trigger = null,
+        ?string $rfidUid = null,
+    ): void {
         if (! $this->state->current_playlist_id) {
             return;
         }
 
         $newPosition = max(0, $this->state->current_position - 1);
         $this->playTrackAtPosition($newPosition);
+
+        $this->eventLogger->log(
+            action: 'previous',
+            source: $source,
+            playlistId: $this->state->current_playlist_id,
+            trackId: $this->state->current_track_id,
+            rfidUid: $rfidUid,
+            trigger: $trigger,
+        );
     }
 
     /**
      * Stop playback completely.
      */
-    public function stop(): void
-    {
+    public function stop(
+        string $source = 'system',
+        ?string $trigger = null,
+        bool $shouldLog = true,
+        ?string $rfidUid = null,
+    ): void {
+        $playlistId = $this->state->current_playlist_id;
+        $trackId = $this->state->current_track_id;
+
         $this->killCurrentMplayerProcess();
 
         $this->state->update([
@@ -158,6 +238,17 @@ class PlayerManager
             'mplayer_pid' => null,
             'expected_pid' => null,
         ]);
+
+        if ($shouldLog) {
+            $this->eventLogger->log(
+                action: 'stopped',
+                source: $source,
+                playlistId: $playlistId,
+                trackId: $trackId,
+                rfidUid: $rfidUid,
+                trigger: $trigger,
+            );
+        }
     }
 
     /**

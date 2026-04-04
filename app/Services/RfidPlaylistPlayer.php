@@ -28,7 +28,12 @@ class RfidPlaylistPlayer
             return null;
         }
 
-        $this->playerManager->playPlaylist($playlist);
+        $this->playerManager->playPlaylist(
+            playlist: $playlist,
+            source: 'rfid',
+            trigger: 'present',
+            rfidUid: $normalizedUid,
+        );
 
         Log::info('Started playlist from RFID chip.', [
             'rfid_uid' => $normalizedUid,

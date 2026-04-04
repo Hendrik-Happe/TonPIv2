@@ -22,7 +22,7 @@ class Home extends Component
 
         $playlist = Playlist::findOrFail($playlistId);
         $playerManager = app(PlayerManager::class);
-        $playerManager->playPlaylist($playlist);
+        $playerManager->playPlaylist($playlist, 'ui', 'home-card');
 
         $this->dispatch('playlist-started');
     }

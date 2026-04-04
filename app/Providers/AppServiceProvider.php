@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Services\PlaybackEventLogger;
 use App\Services\PlayerManager;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
@@ -17,7 +18,7 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(PlayerManager::class, function ($app) {
-            return new PlayerManager;
+            return new PlayerManager($app->make(PlaybackEventLogger::class));
         });
     }
 

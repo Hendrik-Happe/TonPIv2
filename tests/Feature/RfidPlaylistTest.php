@@ -46,7 +46,7 @@ class RfidPlaylistTest extends TestCase
 
     public function test_listener_command_plays_playlist_for_scanned_uid(): void
     {
-        Playlist::factory()
+        $playlist = Playlist::factory()
             ->has(Track::factory()->count(1))
             ->create([
                 'name' => 'Command Playlist',
@@ -68,11 +68,19 @@ class RfidPlaylistTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame('playing', app(PlayerManager::class)->getState()->status);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'started',
+            'source' => 'rfid',
+            'playlist_id' => $playlist->id,
+            'rfid_uid' => 'ABCD1234',
+            'trigger' => 'present',
+        ]);
     }
 
     public function test_listener_command_pauses_when_chip_is_removed(): void
     {
-        Playlist::factory()
+        $playlist = Playlist::factory()
             ->has(Track::factory()->count(1))
             ->create([
                 'name' => 'Pause On Remove Playlist',
@@ -96,6 +104,21 @@ class RfidPlaylistTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame('paused', app(PlayerManager::class)->getState()->status);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'started',
+            'source' => 'rfid',
+            'playlist_id' => $playlist->id,
+            'rfid_uid' => 'DEADBEAF',
+            'trigger' => 'present',
+        ]);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'paused',
+            'source' => 'rfid',
+            'rfid_uid' => 'DEADBEAF',
+            'trigger' => 'removed',
+        ]);
     }
 
     public function test_create_component_saves_normalized_rfid_uid(): void
