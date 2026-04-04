@@ -82,10 +82,15 @@ class PlayerManager
      */
     public function pause(): void
     {
-        if ($this->state->isPlaying() && $this->isMplayerProcessRunning()) {
-            $this->sendCommandToFifo('pause');
-            $this->state->update(['status' => 'paused']);
+        if (! $this->state->isPlaying()) {
+            return;
         }
+
+        if ($this->isMplayerProcessRunning()) {
+            $this->sendCommandToFifo('pause');
+        }
+
+        $this->state->update(['status' => 'paused']);
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\PlayerManager;
 use App\Services\RfidPlaylistPlayer;
 use App\Services\RfidReader;
 use App\Services\RfidTagNormalizer;
@@ -21,6 +22,7 @@ class ListenForRfidScans extends Command
         RfidReader $reader,
         RfidPlaylistPlayer $playlistPlayer,
         RfidTagNormalizer $normalizer,
+        PlayerManager $playerManager,
     ): int {
         $debounceSeconds = max(0, (int) config('rfid.debounce_seconds', 2));
         $lastUid = null;
@@ -29,10 +31,19 @@ class ListenForRfidScans extends Command
         $this->info('Listening for RFID chip scans...');
 
         try {
-            $reader->listen(function (string $rawUid) use ($playlistPlayer, $normalizer, $debounceSeconds, &$lastUid, &$lastSeenAt): void {
+            $reader->listen(function (string $event, string $rawUid) use ($playerManager, $playlistPlayer, $normalizer, $debounceSeconds, &$lastUid, &$lastSeenAt): void {
                 $normalizedUid = $normalizer->normalize($rawUid);
 
                 if ($normalizedUid === null) {
+                    return;
+                }
+
+                if ($event === 'removed') {
+                    if ($lastUid === $normalizedUid) {
+                        $playerManager->pause();
+                        $this->info(sprintf('Paused playback because RFID chip %s was removed.', $normalizedUid));
+                    }
+
                     return;
                 }
 

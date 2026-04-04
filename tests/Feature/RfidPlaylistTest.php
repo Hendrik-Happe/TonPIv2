@@ -57,7 +57,7 @@ class RfidPlaylistTest extends TestCase
         $reader->shouldReceive('listen')
             ->once()
             ->withArgs(function ($callback) {
-                $callback('AB CD 12 34');
+                $callback('present', 'AB CD 12 34');
 
                 return true;
             });
@@ -68,6 +68,34 @@ class RfidPlaylistTest extends TestCase
             ->assertSuccessful();
 
         $this->assertSame('playing', app(PlayerManager::class)->getState()->status);
+    }
+
+    public function test_listener_command_pauses_when_chip_is_removed(): void
+    {
+        Playlist::factory()
+            ->has(Track::factory()->count(1))
+            ->create([
+                'name' => 'Pause On Remove Playlist',
+                'rfid_uid' => 'DEADBEAF',
+            ]);
+
+        $reader = $this->mock(RfidReader::class);
+        $reader->shouldReceive('listen')
+            ->once()
+            ->withArgs(function ($callback) {
+                $callback('present', 'DE AD BE AF');
+                $callback('removed', 'DE AD BE AF');
+
+                return true;
+            });
+
+        $this->artisan('rfid:listen')
+            ->expectsOutput('Listening for RFID chip scans...')
+            ->expectsOutput('Started playlist "Pause On Remove Playlist" for RFID chip DEADBEAF.')
+            ->expectsOutput('Paused playback because RFID chip DEADBEAF was removed.')
+            ->assertSuccessful();
+
+        $this->assertSame('paused', app(PlayerManager::class)->getState()->status);
     }
 
     public function test_create_component_saves_normalized_rfid_uid(): void

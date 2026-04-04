@@ -7,7 +7,7 @@ use RuntimeException;
 
 class RfidReader
 {
-    public function listen(Closure $onUid): void
+    public function listen(Closure $onEvent): void
     {
         $command = trim((string) config('rfid.reader_command'));
 
@@ -35,7 +35,20 @@ class RfidReader
                     continue;
                 }
 
-                $onUid($uid);
+                if (str_starts_with($uid, 'PRESENT:')) {
+                    $onEvent('present', trim(substr($uid, 8)));
+
+                    continue;
+                }
+
+                if (str_starts_with($uid, 'REMOVED:')) {
+                    $onEvent('removed', trim(substr($uid, 8)));
+
+                    continue;
+                }
+
+                // Backward compatibility for raw UID output.
+                $onEvent('present', $uid);
             }
         } finally {
             pclose($handle);
