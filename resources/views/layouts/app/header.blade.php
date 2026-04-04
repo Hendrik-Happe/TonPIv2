@@ -24,6 +24,7 @@
                             <li><a href="{{ route('remote-control') }}" wire:navigate>{{ __('Remote') }}</a></li>
                             <li><a href="{{ route('system-status') }}" wire:navigate>{{ __('Hardware Status') }}</a></li>
                             <li><a href="{{ route('event-history') }}" wire:navigate>{{ __('Event History') }}</a></li>
+                            <li><a href="{{ route('backup-restore') }}" wire:navigate>{{ __('Backup') }}</a></li>
                         </ul>
                     </div>
 
@@ -46,6 +47,7 @@
                         <li><a href="{{ route('remote-control') }}" wire:navigate>{{ __('Remote') }}</a></li>
                         <li><a href="{{ route('system-status') }}" wire:navigate>{{ __('Hardware Status') }}</a></li>
                         <li><a href="{{ route('event-history') }}" wire:navigate>{{ __('Event History') }}</a></li>
+                        <li><a href="{{ route('backup-restore') }}" wire:navigate>{{ __('Backup') }}</a></li>
                         <li><a href="https://github.com/laravel/livewire-starter-kit" target="_blank">{{ __('Repository') }}</a></li>
                         <li><a href="https://laravel.com/docs/starter-kits#livewire" target="_blank">{{ __('Documentation') }}</a></li>
                     </ul>

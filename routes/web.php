@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\BackupRestore;
 use App\Livewire\EventHistory;
 use App\Livewire\Home;
 use App\Livewire\Playlists\Create as PlaylistsCreate;
@@ -19,6 +20,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/system-status', SystemStatus::class)->name('system-status');
     Route::get('/event-history', EventHistory::class)->name('event-history');
     Route::get('/remote', RemoteControl::class)->name('remote-control');
+    Route::get('/backup-restore', BackupRestore::class)->name('backup-restore');
 });
 
 require __DIR__.'/settings.php';
