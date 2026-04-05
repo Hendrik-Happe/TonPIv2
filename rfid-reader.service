@@ -1,0 +1,16 @@
+[Unit]
+Description=TonPI RFID Reader Service
+After=network.target
+
+[Service]
+Type=simple
+User=tonpi
+WorkingDirectory=/home/tonpi/TonPI
+ExecStart=/usr/bin/python3 rfid-reader/read_rfid.py
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

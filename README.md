@@ -91,33 +91,117 @@ If you prefer to install dependencies manually or are on a different system:
    php artisan serve
    ```
 
-## Usage
+## Hardware Integration
 
-### RFID Learning Mode
-To associate RFID tags with playlists:
+TonPI supports RFID readers and GPIO controls for a complete embedded music player experience.
+
+### RFID Reader Setup
+
+The system uses MFRC522 RFID readers connected via SPI. The RFID reader service runs continuously and updates the database when tags are detected.
+
+**Service Management:**
 ```bash
-php artisan rfid:learn
+# Start RFID reader service
+sudo systemctl start rfid-reader.service
+
+# Check status
+sudo systemctl status rfid-reader.service
+
+# View logs
+sudo journalctl -u rfid-reader.service -f
 ```
 
-### GPIO Control
-Configure GPIO pins and start the GPIO listener:
+**Manual Testing:**
 ```bash
-php artisan gpio:start
+# Test RFID reader once
+python3 rfid-reader/read_rfid.py --once --timeout 10
+
+# Start continuous monitoring
+python3 rfid-reader/read_rfid.py
 ```
 
-### Backup and Restore
-Create a backup:
+### GPIO Control Setup
+
+GPIO buttons and LEDs provide hardware control for the player. The system uses the following default pin mappings (BCM numbering):
+
+- Previous Track: GPIO 17
+- Next Track: GPIO 27
+- Volume Down: GPIO 22
+- Volume Up: GPIO 23
+- Ready LED: GPIO 24
+- Playing LED: GPIO 25
+
+**Service Management:**
 ```bash
-php artisan backup:create
+# Start GPIO control service
+sudo systemctl start gpio-control.service
+
+# Check status
+sudo systemctl status gpio-control.service
+
+# View logs
+sudo journalctl -u gpio-control.service -f
 ```
 
-Restore from backup:
+**Configuration:**
+Edit `.env` file to customize GPIO pins:
 ```bash
-php artisan backup:restore /path/to/backup.zip
+GPIO_BTN_PREVIOUS_PIN=17
+GPIO_BTN_NEXT_PIN=27
+GPIO_BTN_VOL_DOWN_PIN=22
+GPIO_BTN_VOL_UP_PIN=23
+GPIO_LED_READY_PIN=24
+GPIO_LED_PLAYING_PIN=25
+GPIO_BUTTON_DEBOUNCE_MS=180
+GPIO_LED_POLL_INTERVAL_MS=500
 ```
 
-### Web Interface
-Access the web interface at `http://localhost:8000` to manage playlists, view event history, and use the remote control.
+### Apache Reverse Proxy (Production)
+
+For production deployment, configure Apache as a reverse proxy:
+
+1. The installation script automatically configures Apache with SSL
+2. Access the application at `https://tonpi.local` (add to `/etc/hosts` if needed)
+3. SSL certificates are self-signed by default - replace with proper certificates for production
+
+**Apache Configuration:**
+- Located at `/etc/apache2/sites-available/tonpi-apache.conf`
+- Includes WebSocket proxy for Livewire
+- Redirects HTTP to HTTPS
+
+### Service Management Script
+
+Use the included script to manage all services:
+
+```bash
+# Start all services
+./services.sh start
+
+# Stop all services
+./services.sh stop
+
+# Restart all services
+./services.sh restart
+
+# Check status
+./services.sh status
+```
+
+### Hardware Troubleshooting
+
+**RFID Reader Issues:**
+- Check SPI interface is enabled: `raspi-config`
+- Verify MFRC522 connections (SDA, SCK, MOSI, MISO, IRQ, GND, RST, 3.3V)
+- Test with: `python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); print('GPIO OK')"`
+
+**GPIO Issues:**
+- Verify pin numbering (BCM vs BOARD)
+- Check button wiring (normally open, pull-up resistors)
+- Test LEDs with: `python3 -c "import RPi.GPIO as GPIO; GPIO.setmode(GPIO.BCM); GPIO.setup(24, GPIO.OUT); GPIO.output(24, GPIO.HIGH)"`
+
+**Database Issues:**
+- Ensure proper permissions: `chown tonpi:tonpi database/database.sqlite`
+- Check SQLite concurrent access: services use read-only access where possible
 
 ## Configuration
 

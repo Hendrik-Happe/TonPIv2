@@ -18,17 +18,17 @@ else
 fi
 
 if [[ "$IS_ROOT" == true ]]; then
-  echo "[1/5] Updating package lists..."
+  echo "[1/8] Updating package lists..."
   apt-get update
 
-  echo "[2/5] Installing bootstrap dependencies..."
-  if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip; then
+  echo "[2/8] Installing bootstrap dependencies..."
+  if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 libapache2-mod-proxy libapache2-mod-proxy-http libapache2-mod-ssl; then
     echo "⚠️  Initial package install failed. Attempting to fix broken packages..."
     apt-get install -f -y
-    apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip
+    apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 libapache2-mod-proxy libapache2-mod-proxy-http libapache2-mod-ssl
   fi
 
-  echo "[3/5] Installing Node.js 22 LTS..."
+  echo "[3/8] Installing Node.js 22 LTS..."
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get update
   if ! apt-get install -y nodejs; then
@@ -43,16 +43,36 @@ if [[ "$IS_ROOT" == true ]]; then
     exit 1
   fi
 
-  echo "[4/5] Installing PHP dependencies..."
+  echo "[4/8] Installing Python GPIO dependencies..."
+  pip3 install --break-system-packages RPi.GPIO mfrc522
+
+  echo "[5/8] Installing PHP dependencies..."
   composer install --no-interaction --prefer-dist --optimize-autoloader
 
-  echo "[5/5] Running application installer as $ORIGINAL_USER..."
+  echo "[6/8] Running application installer as $ORIGINAL_USER..."
   sudo -u "$ORIGINAL_USER" php artisan app:install
+
+  echo "[7/8] Installing systemd services..."
+  cp rfid-reader.service /etc/systemd/system/
+  cp gpio-control.service /etc/systemd/system/
+  systemctl daemon-reload
+  systemctl enable rfid-reader.service
+  systemctl enable gpio-control.service
+
+  echo "[8/8] Configuring Apache reverse proxy..."
+  cp tonpi-apache.conf /etc/apache2/sites-available/
+  a2enmod proxy proxy_http proxy_wstunnel ssl rewrite
+  a2ensite tonpi-apache.conf
+  systemctl reload apache2
+
 else
-  echo "[1/2] Installing PHP dependencies..."
+  echo "[1/3] Installing PHP dependencies..."
   composer install --no-interaction --prefer-dist --optimize-autoloader
 
-  echo "[2/2] Running application installer..."
+  echo "[2/3] Installing Python GPIO dependencies..."
+  pip3 install --break-system-packages RPi.GPIO mfrc522
+
+  echo "[3/3] Running application installer..."
   php artisan app:install --skip-system-deps
 fi
 
