@@ -7,9 +7,13 @@
                 </svg>
             </div>
             <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+                <li><a href="/remote" wire:navigate>{{ __('Remote') }}</a></li>
                 @auth
                     <li><a href="/" wire:navigate>{{ __('Home') }}</a></li>
                     <li><a href="/playlists" wire:navigate>{{ __('Playlists') }}</a></li>
+                    <li><a href="/system-status" wire:navigate>{{ __('System Status') }}</a></li>
+                    <li><a href="/event-history" wire:navigate>{{ __('Event History') }}</a></li>
+                    <li><a href="/backup-restore" wire:navigate>{{ __('Backup Restore') }}</a></li>
                 @endauth
             </ul>
         </div>
@@ -17,12 +21,16 @@
     </div>
     
     <div class="navbar-center hidden lg:flex">
-        @auth
-            <ul class="menu menu-horizontal px-1">
+        <ul class="menu menu-horizontal px-1">
+            <li><a href="/remote" wire:navigate>{{ __('Remote') }}</a></li>
+            @auth
                 <li><a href="/" wire:navigate>{{ __('Home') }}</a></li>
                 <li><a href="/playlists" wire:navigate>{{ __('Playlists') }}</a></li>
-            </ul>
-        @endauth
+                <li><a href="/system-status" wire:navigate>{{ __('System Status') }}</a></li>
+                <li><a href="/event-history" wire:navigate>{{ __('Event History') }}</a></li>
+                <li><a href="/backup-restore" wire:navigate>{{ __('Backup Restore') }}</a></li>
+            @endauth
+        </ul>
     </div>
     
     <div class="navbar-end">
