@@ -50,7 +50,7 @@ if [[ "$IS_ROOT" == true ]]; then
   composer install --no-interaction --prefer-dist --optimize-autoloader
 
   echo "[6/8] Running application installer as $ORIGINAL_USER..."
-  sudo -u "$ORIGINAL_USER" php artisan app:install
+  sudo -u "$ORIGINAL_USER" php artisan app:install --skip-system-deps
 
   echo "[7/8] Installing systemd services..."
   cp rfid-reader.service /etc/systemd/system/
