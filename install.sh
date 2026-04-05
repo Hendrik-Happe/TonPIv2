@@ -18,17 +18,17 @@ else
 fi
 
 if [[ "$IS_ROOT" == true ]]; then
-  echo "[1/8] Updating package lists..."
+  echo "[1/14] Updating package lists..."
   apt-get update
 
-  echo "[2/8] Installing bootstrap dependencies..."
+  echo "[2/14] Installing bootstrap dependencies..."
   if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 php8.4-fpm mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert; then
     echo "⚠️  Initial package install failed. Attempting to fix broken packages..."
     apt-get install -f -y
     apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert
   fi
 
-  echo "[3/8] Installing Node.js 22 LTS..."
+  echo "[3/14] Installing Node.js 22 LTS..."
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get update
   if ! apt-get install -y nodejs; then
@@ -43,44 +43,73 @@ if [[ "$IS_ROOT" == true ]]; then
     exit 1
   fi
 
-  echo "[5/8] Installing Python GPIO dependencies..."
+  echo "[4/14] Installing Python GPIO dependencies..."
   sudo -u "$ORIGINAL_USER" pip3 install --break-system-packages RPi.GPIO mfrc522
 
-  echo "[6/8] Installing PHP dependencies..."
+  echo "[5/14] Installing PHP dependencies..."
   sudo -u "$ORIGINAL_USER" composer install --no-interaction --prefer-dist --optimize-autoloader
 
-  echo "[7/12] Starting PHP-FPM..."
+  echo "[6/14] Building frontend assets..."
+  sudo -u "$ORIGINAL_USER" npm install
+  sudo -u "$ORIGINAL_USER" npm run build
+
+  echo "[7/14] Starting PHP-FPM..."
   systemctl enable php8.4-fpm
   systemctl start php8.4-fpm
 
-  echo "[8/12] Fixing file permissions..."
+  echo "[8/14] Fixing initial file permissions..."
   chown -R "$ORIGINAL_USER:$ORIGINAL_USER" .
 
-  echo "[9/12] Running application installer as $ORIGINAL_USER..."
+  echo "[9/14] Running application installer as $ORIGINAL_USER..."
   sudo -u "$ORIGINAL_USER" php artisan app:install --skip-system-deps
 
-  echo "[10/12] Installing systemd services..."
+  echo "[10/14] Installing systemd services..."
   cp rfid-reader.service /etc/systemd/system/
   cp gpio-control.service /etc/systemd/system/
+  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{PHP_PATH}}|$(which php)|g" queue-worker.service | tee /etc/systemd/system/queue-worker.service > /dev/null
   systemctl daemon-reload
   systemctl enable rfid-reader.service
   systemctl enable gpio-control.service
+  systemctl enable queue-worker.service
+  systemctl start queue-worker.service
 
-  echo "[11/12] Configuring Apache direct access..."
+  echo "[11/14] Configuring Apache direct access..."
   sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g" tonpi-apache.conf | tee /etc/apache2/sites-available/tonpi-apache.conf > /dev/null
   a2enmod proxy_fcgi
   a2ensite tonpi-apache.conf
   systemctl reload apache2
 
-  echo "[12/12] Fixing final permissions..."
-  chown -R "$ORIGINAL_USER:$ORIGINAL_USER" .
-  mkdir -p database
-  touch database/database.sqlite
-  chown "$ORIGINAL_USER:$ORIGINAL_USER" database/database.sqlite
-  chmod 664 database/database.sqlite
-  mkdir -p storage
-  mkdir -p bootstrap/cache
+  echo "[12/14] Setting up user and group permissions..."
+  usermod -a -G audio www-data
+  usermod -a -G www-data "$ORIGINAL_USER"
+
+  echo "[13/14] Setting final file permissions..."
+  chown -R "$ORIGINAL_USER:www-data" .
+  find . -type d -exec chmod 755 {} \;
+  find . -type f -exec chmod 644 {} \;
   chmod -R 775 storage bootstrap/cache
+  mkdir -p database
+  chown -R "$ORIGINAL_USER:www-data" database
+  chmod 775 database
+  touch database/database.sqlite
+  chown "$ORIGINAL_USER:www-data" database/database.sqlite
+  chmod 664 database/database.sqlite
+
+  echo "[14/14] Restarting services..."
+  systemctl restart php8.4-fpm queue-worker
+
+  echo ""
+  echo "✅ Installation complete!"
+  echo ""
+  echo "📋 Running services:"
+  echo ""
+  systemctl status queue-worker.service --no-pager || true
+  systemctl status php8.4-fpm --no-pager || true
+  echo ""
+  echo "⚠️  To check service logs:"
+  echo "   sudo journalctl -u queue-worker -f"
+  echo "   sudo journalctl -u php8.4-fpm -f"
+  echo ""
 
 else
   echo "[1/4] Installing PHP dependencies..."

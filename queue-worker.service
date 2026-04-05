@@ -1,0 +1,22 @@
+[Unit]
+Description=TonPI Queue Worker
+After=network.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+WorkingDirectory={{PROJECT_DIR}}
+ExecStart={{PHP_PATH}} artisan queue:work database --sleep=3 --tries=1 --timeout=30
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tonpi-queue
+
+# Environment variables
+Environment="PULSE_COOKIE=/var/run/pulse/cookie"
+Environment="HOME=/var/www"
+
+[Install]
+WantedBy=multi-user.target
