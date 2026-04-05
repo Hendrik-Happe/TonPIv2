@@ -35,7 +35,18 @@ sudo ./install.sh
 This script will:
 - Install required system packages (PHP, Node.js 22 LTS, Composer, SQLite, mplayer, ffmpeg, etc.)
 - Install PHP and Node.js dependencies
-- Run the Laravel application installer with `--skip-system-deps`
+- Run the Laravel application installer as the original user (not root) to avoid file permission issues
+
+For development environments where you don't have root access, run the script as your regular user:
+
+```bash
+./install.sh
+```
+
+This will:
+- Skip system package installation (you must install them manually)
+- Install PHP and Node.js dependencies
+- Run the Laravel application installer with `--skip-system-deps` with `--skip-system-deps`
 
 > Running `php artisan app:install` directly is still supported, but only if you want the command to install system packages itself. When using `sudo ./install.sh`, the script already installs system packages and then runs `php artisan app:install --skip-system-deps` to avoid duplicate package installation.
 

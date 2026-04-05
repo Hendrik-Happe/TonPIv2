@@ -17,13 +17,13 @@ class Install extends Command
      */
     public function handle(ApplicationInstaller $installer): int
     {
-        if (! $installer->isRunningAsRoot()) {
-            $this->error('This command must be run as root.');
+        $skipSystemDependencies = $this->option('skip-system-deps') === true;
+
+        if (! $skipSystemDependencies && ! $installer->isRunningAsRoot()) {
+            $this->error('This command must be run as root to install system dependencies. Use --skip-system-deps to skip system package installation.');
 
             return self::FAILURE;
         }
-
-        $skipSystemDependencies = $this->option('skip-system-deps') === true;
 
         $name = trim((string) $this->ask('Name for the initial user', 'Administrator'));
         $password = (string) $this->secret('Password for the initial user');
