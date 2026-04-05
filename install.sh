@@ -64,7 +64,7 @@ if [[ "$IS_ROOT" == true ]]; then
 
   echo "[8/9] Configuring Apache reverse proxy..."
   cp tonpi-apache.conf /etc/apache2/sites-available/
-  a2enmod proxy proxy_http proxy_wstunnel ssl rewrite
+  a2enmod proxy proxy_http proxy_wstunnel ssl rewrite headers
   a2ensite tonpi-apache.conf
   systemctl reload apache2
 
