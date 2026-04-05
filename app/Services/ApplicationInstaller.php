@@ -40,7 +40,6 @@ class ApplicationInstaller
             $command->info('Skipping initial user creation.');
         }
         
-        $this->createSystemdServices($command);
         $this->runPostInstallChecks($command);
     }
 
@@ -285,10 +284,6 @@ class ApplicationInstaller
 
         $this->runProcessStep($command, 'Checking mplayer installation', 'command -v mplayer >/dev/null');
         $this->runProcessStep($command, 'Checking ffprobe installation', 'command -v ffprobe >/dev/null');
-        $this->runProcessStep($command, 'Checking queue service state', 'systemctl is-enabled tonpi-player-queue.service >/dev/null');
-        $this->runProcessStep($command, 'Checking RFID listener service state', 'systemctl is-enabled tonpi-rfid-listener.service >/dev/null');
-        $this->runProcessStep($command, 'Checking GPIO controls service state', 'systemctl is-enabled tonpi-gpio-controls.service >/dev/null');
-        $this->runProcessStep($command, 'Checking web service state', 'systemctl is-enabled tonpi-web.service >/dev/null');
 
         if (! file_exists('/dev/spidev0.0')) {
             $command->warn('SPI device /dev/spidev0.0 not found. Enable SPI before using RC522.');
@@ -301,74 +296,6 @@ class ApplicationInstaller
         if (trim((string) shell_exec('amixer scontrols | grep -i PCM')) === '') {
             $command->warn('No PCM control found via amixer. Check ALSA audio device configuration.');
         }
-    }
-
-    private function buildSystemdService(string $description, string $artisanCommand): string
-    {
-        $serviceUser = $this->serviceUser();
-        $serviceGroup = $this->serviceGroup();
-
-        return implode("\n", [
-            '[Unit]',
-            sprintf('Description=%s', $description),
-            'After=network.target',
-            '',
-            '[Service]',
-            'Type=simple',
-            sprintf('User=%s', $serviceUser),
-            sprintf('Group=%s', $serviceGroup),
-            sprintf('WorkingDirectory=%s', base_path()),
-            sprintf('ExecStart=%s', $artisanCommand),
-            'Restart=always',
-            'RestartSec=5',
-            '',
-            '[Install]',
-            'WantedBy=multi-user.target',
-            '',
-        ]);
-    }
-
-    private function systemdServiceDirectory(): string
-    {
-        if (app()->runningUnitTests()) {
-            return storage_path('framework/testing/systemd');
-        }
-
-        return '/etc/systemd/system';
-    }
-
-    private function serviceUser(): string
-    {
-        if (! function_exists('fileowner') || ! function_exists('posix_getpwuid')) {
-            return 'root';
-        }
-
-        $ownerId = @fileowner(base_path());
-
-        if (! is_int($ownerId)) {
-            return 'root';
-        }
-
-        $owner = @posix_getpwuid($ownerId);
-
-        return is_array($owner) && isset($owner['name']) ? (string) $owner['name'] : 'root';
-    }
-
-    private function serviceGroup(): string
-    {
-        if (! function_exists('filegroup') || ! function_exists('posix_getgrgid')) {
-            return 'root';
-        }
-
-        $groupId = @filegroup(base_path());
-
-        if (! is_int($groupId)) {
-            return 'root';
-        }
-
-        $group = @posix_getgrgid($groupId);
-
-        return is_array($group) && isset($group['name']) ? (string) $group['name'] : 'root';
     }
 
     private function environmentFilePath(): string
