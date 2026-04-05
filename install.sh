@@ -22,7 +22,7 @@ if [[ "$IS_ROOT" == true ]]; then
   apt-get update
 
   echo "[2/8] Installing bootstrap dependencies..."
-  if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert; then
+  if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 php8.4-fpm mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert; then
     echo "⚠️  Initial package install failed. Attempting to fix broken packages..."
     apt-get install -f -y
     apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert
@@ -43,32 +43,36 @@ if [[ "$IS_ROOT" == true ]]; then
     exit 1
   fi
 
-  echo "[4/8] Installing Python GPIO dependencies..."
+  echo "[5/8] Installing Python GPIO dependencies..."
   sudo -u "$ORIGINAL_USER" pip3 install --break-system-packages RPi.GPIO mfrc522
 
-  echo "[5/8] Installing PHP dependencies..."
+  echo "[6/8] Installing PHP dependencies..."
   sudo -u "$ORIGINAL_USER" composer install --no-interaction --prefer-dist --optimize-autoloader
 
-  echo "[6/8] Fixing file permissions..."
+  echo "[7/12] Starting PHP-FPM..."
+  systemctl enable php8.4-fpm
+  systemctl start php8.4-fpm
+
+  echo "[8/12] Fixing file permissions..."
   chown -R "$ORIGINAL_USER:$ORIGINAL_USER" .
 
-  echo "[7/8] Running application installer as $ORIGINAL_USER..."
+  echo "[9/12] Running application installer as $ORIGINAL_USER..."
   sudo -u "$ORIGINAL_USER" php artisan app:install --skip-system-deps
 
-  echo "[7/9] Installing systemd services..."
+  echo "[10/12] Installing systemd services..."
   cp rfid-reader.service /etc/systemd/system/
   cp gpio-control.service /etc/systemd/system/
   systemctl daemon-reload
   systemctl enable rfid-reader.service
   systemctl enable gpio-control.service
 
-  echo "[8/9] Configuring Apache reverse proxy..."
-  cp tonpi-apache.conf /etc/apache2/sites-available/
-  a2enmod proxy proxy_http proxy_wstunnel ssl rewrite headers
+  echo "[11/12] Configuring Apache direct access..."
+  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g" tonpi-apache.conf | tee /etc/apache2/sites-available/tonpi-apache.conf > /dev/null
+  a2enmod proxy_fcgi
   a2ensite tonpi-apache.conf
   systemctl reload apache2
 
-  echo "[9/9] Fixing final permissions..."
+  echo "[12/12] Fixing final permissions..."
   chown -R "$ORIGINAL_USER:$ORIGINAL_USER" .
   mkdir -p database
   touch database/database.sqlite
