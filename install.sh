@@ -22,10 +22,10 @@ if [[ "$IS_ROOT" == true ]]; then
   apt-get update
 
   echo "[2/8] Installing bootstrap dependencies..."
-  if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 libapache2-mod-proxy libapache2-mod-proxy-http libapache2-mod-ssl; then
+  if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert; then
     echo "⚠️  Initial package install failed. Attempting to fix broken packages..."
     apt-get install -f -y
-    apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 libapache2-mod-proxy libapache2-mod-proxy-http libapache2-mod-ssl
+    apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert
   fi
 
   echo "[3/8] Installing Node.js 22 LTS..."
