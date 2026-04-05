@@ -44,35 +44,56 @@ if [[ "$IS_ROOT" == true ]]; then
   fi
 
   echo "[4/8] Installing Python GPIO dependencies..."
-  pip3 install --break-system-packages RPi.GPIO mfrc522
+  sudo -u "$ORIGINAL_USER" pip3 install --break-system-packages RPi.GPIO mfrc522
 
   echo "[5/8] Installing PHP dependencies..."
-  composer install --no-interaction --prefer-dist --optimize-autoloader
+  sudo -u "$ORIGINAL_USER" composer install --no-interaction --prefer-dist --optimize-autoloader
 
-  echo "[6/8] Running application installer as $ORIGINAL_USER..."
+  echo "[6/8] Fixing file permissions..."
+  chown -R "$ORIGINAL_USER:$ORIGINAL_USER" .
+
+  echo "[7/8] Running application installer as $ORIGINAL_USER..."
   sudo -u "$ORIGINAL_USER" php artisan app:install --skip-system-deps
 
-  echo "[7/8] Installing systemd services..."
+  echo "[7/9] Installing systemd services..."
   cp rfid-reader.service /etc/systemd/system/
   cp gpio-control.service /etc/systemd/system/
   systemctl daemon-reload
   systemctl enable rfid-reader.service
   systemctl enable gpio-control.service
 
-  echo "[8/8] Configuring Apache reverse proxy..."
+  echo "[8/9] Configuring Apache reverse proxy..."
   cp tonpi-apache.conf /etc/apache2/sites-available/
   a2enmod proxy proxy_http proxy_wstunnel ssl rewrite
   a2ensite tonpi-apache.conf
   systemctl reload apache2
 
+  echo "[9/9] Fixing final permissions..."
+  chown -R "$ORIGINAL_USER:$ORIGINAL_USER" .
+  mkdir -p database
+  touch database/database.sqlite
+  chown "$ORIGINAL_USER:$ORIGINAL_USER" database/database.sqlite
+  chmod 664 database/database.sqlite
+  mkdir -p storage
+  mkdir -p bootstrap/cache
+  chmod -R 775 storage bootstrap/cache
+
 else
-  echo "[1/3] Installing PHP dependencies..."
+  echo "[1/4] Installing PHP dependencies..."
   composer install --no-interaction --prefer-dist --optimize-autoloader
 
-  echo "[2/3] Installing Python GPIO dependencies..."
+  echo "[2/4] Installing Python GPIO dependencies..."
   pip3 install --break-system-packages RPi.GPIO mfrc522
 
-  echo "[3/3] Running application installer..."
+  echo "[3/4] Fixing file permissions..."
+  mkdir -p database
+  touch database/database.sqlite
+  chmod 664 database/database.sqlite
+  mkdir -p storage
+  mkdir -p bootstrap/cache
+  chmod -R 775 storage bootstrap/cache
+
+  echo "[4/4] Running application installer..."
   php artisan app:install --skip-system-deps
 fi
 

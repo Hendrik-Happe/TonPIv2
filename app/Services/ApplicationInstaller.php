@@ -21,7 +21,7 @@ class ApplicationInstaller
         return function_exists('posix_geteuid') && posix_geteuid() === 0;
     }
 
-    public function install(Command $command, string $name, string $password, bool $skipSystemDependencies = false): void
+    public function install(Command $command, ?string $name, ?string $password, bool $skipSystemDependencies = false): void
     {
         if (! $skipSystemDependencies) {
             $this->installSystemDependencies($command);
@@ -33,7 +33,13 @@ class ApplicationInstaller
         $this->initializeLaravel($command);
         $this->prepareRfidReaderEnvironment($command);
         $this->prepareGpioControlEnvironment($command);
-        $this->createInitialUser($command, $name, $password);
+        
+        if ($name !== null && $password !== null) {
+            $this->createInitialUser($command, $name, $password);
+        } else {
+            $command->info('Skipping initial user creation.');
+        }
+        
         $this->createSystemdServices($command);
         $this->runPostInstallChecks($command);
     }
