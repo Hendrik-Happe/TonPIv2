@@ -114,7 +114,6 @@ class ApplicationInstaller
 
         $this->runArtisanStep('storage:link', ['--force' => true]);
         $this->runArtisanStep('migrate', ['--force' => true]);
-        $this->runArtisanStep('db:seed', ['--force' => true]);
     }
 
     private function ensureEnvironmentFileExists(): void
