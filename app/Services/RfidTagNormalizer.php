@@ -14,6 +14,12 @@ class RfidTagNormalizer
             return null;
         }
 
+        // MFRC522 UIDs are emitted as uppercase hexadecimal text (usually 10 chars).
+        // Reject arbitrary status/log lines like "CLEANINGUPRFIDREADER".
+        if (! preg_match('/^[A-F0-9]{8,20}$/', $normalized)) {
+            return null;
+        }
+
         return $normalized;
     }
 }
