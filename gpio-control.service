@@ -9,8 +9,8 @@ WorkingDirectory={{PROJECT_DIR}}
 EnvironmentFile=-{{PROJECT_DIR}}/.env
 SupplementaryGroups=spi gpio audio
 ExecStart=/usr/bin/python3 {{PROJECT_DIR}}/gpio-control/read_gpio.py
-Restart=always
-RestartSec=5
+Restart=on-failure
+RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
