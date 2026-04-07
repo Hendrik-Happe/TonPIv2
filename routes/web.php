@@ -11,6 +11,7 @@ use App\Livewire\SystemStatus;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', Home::class)->name('home');
+Route::get('/remote', RemoteControl::class)->name('remote-control');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     // Playlist Management
@@ -19,7 +20,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/playlists/{playlist}/edit', PlaylistsEdit::class)->name('playlists.edit');
     Route::get('/system-status', SystemStatus::class)->name('system-status');
     Route::get('/event-history', EventHistory::class)->name('event-history');
-    Route::get('/remote', RemoteControl::class)->name('remote-control');
     Route::get('/backup-restore', BackupRestore::class)->name('backup-restore');
 });
 
