@@ -37,6 +37,25 @@ class PlaylistManagementTest extends TestCase
         $response->assertSeeLivewire(Index::class);
     }
 
+    public function test_playlists_index_supports_search_and_pagination(): void
+    {
+        Playlist::factory()->count(11)->create();
+        Playlist::factory()->create(['name' => 'Alpha Finder']);
+        Playlist::factory()->create(['name' => 'Zulu Hidden']);
+
+        $component = Livewire::actingAs($this->user)
+            ->test(Index::class)
+            ->assertSee('Alpha Finder')
+            ->assertDontSee('Zulu Hidden');
+
+        $component
+            ->call('gotoPage', 2)
+            ->assertSee('Zulu Hidden')
+            ->set('search', 'Alpha')
+            ->assertSee('Alpha Finder')
+            ->assertDontSee('Zulu Hidden');
+    }
+
     public function test_authenticated_user_can_view_create_playlist_page(): void
     {
         $response = $this->actingAs($this->user)->get('/playlists/create');

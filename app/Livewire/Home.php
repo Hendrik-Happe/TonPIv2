@@ -6,9 +6,19 @@ use App\Models\Playlist;
 use App\Services\PlayerManager;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 class Home extends Component
 {
+    use WithPagination;
+
+    public string $search = '';
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
     #[Computed]
     public function playerState()
     {
@@ -18,7 +28,13 @@ class Home extends Component
     #[Computed]
     public function playlists()
     {
-        return Playlist::withCount('tracks')->latest()->get();
+        return Playlist::query()
+            ->withCount('tracks')
+            ->when($this->search !== '', function ($query): void {
+                $query->where('name', 'like', '%'.$this->search.'%');
+            })
+            ->latest()
+            ->paginate(12);
     }
 
     public function playPlaylist(int $playlistId): void

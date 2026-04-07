@@ -12,13 +12,23 @@ use App\Services\PlayerManager;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithPagination;
 
 #[Title('Remote Control')]
 class RemoteControl extends Component
 {
+    use WithPagination;
+
     public ?int $selectedPlaylistId = null;
 
     public int $volumePercentage = 100;
+
+    public string $search = '';
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
 
     public function mount(): void
     {
@@ -42,7 +52,13 @@ class RemoteControl extends Component
     #[Computed]
     public function playlists()
     {
-        return Playlist::query()->withCount('tracks')->orderBy('name')->get();
+        return Playlist::query()
+            ->withCount('tracks')
+            ->when($this->search !== '', function ($query): void {
+                $query->where('name', 'like', '%'.$this->search.'%');
+            })
+            ->orderBy('name')
+            ->paginate(12);
     }
 
     #[Computed]

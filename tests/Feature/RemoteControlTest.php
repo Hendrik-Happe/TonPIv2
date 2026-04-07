@@ -102,4 +102,30 @@ class RemoteControlTest extends TestCase
             ->call('syncFromPlayerState')
             ->assertSet('volumePercentage', 52);
     }
+
+    public function test_remote_control_supports_search_and_pagination_for_playlists(): void
+    {
+        $user = User::factory()->create();
+
+        for ($i = 1; $i <= 11; $i++) {
+            Playlist::factory()->create([
+                'name' => sprintf('Remote List %02d', $i),
+            ]);
+        }
+
+        Playlist::factory()->create(['name' => 'Aardvark Playlist']);
+        Playlist::factory()->create(['name' => 'Zulu Playlist']);
+
+        $component = Livewire::actingAs($user)
+            ->test(RemoteControl::class)
+            ->assertSee('Aardvark Playlist')
+            ->assertDontSee('Zulu Playlist');
+
+        $component
+            ->call('gotoPage', 2)
+            ->assertSee('Zulu Playlist')
+            ->set('search', 'Aardvark')
+            ->assertSee('Aardvark Playlist')
+            ->assertDontSee('Zulu Playlist');
+    }
 }

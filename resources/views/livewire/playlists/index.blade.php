@@ -9,6 +9,20 @@
         </a>
     </div>
 
+    <div class="mb-6">
+        <label class="input input-bordered w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+                type="text"
+                class="grow"
+                placeholder="{{ __('Search playlists or RFID...') }}"
+                wire:model.live.debounce.300ms="search"
+            />
+        </label>
+    </div>
+
     @if (session('message'))
         <div role="alert" class="alert alert-success mb-4">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 shrink-0 stroke-current" fill="none" viewBox="0 0 24 24">
@@ -25,16 +39,21 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path>
                 </svg>
             </div>
-            <h2 class="text-2xl font-bold mb-2">No playlists yet</h2>
-            <p class="opacity-60 mb-4">
-                Create your first playlist to get started.
-            </p>
-            <a href="/playlists/create" wire:navigate class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                Create Playlist
-            </a>
+            @if($search !== '')
+                <h2 class="text-2xl font-bold mb-2">{{ __('No playlists found') }}</h2>
+                <p class="opacity-60 mb-4">{{ __('Try a different search term.') }}</p>
+            @else
+                <h2 class="text-2xl font-bold mb-2">No playlists yet</h2>
+                <p class="opacity-60 mb-4">
+                    Create your first playlist to get started.
+                </p>
+                <a href="/playlists/create" wire:navigate class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create Playlist
+                </a>
+            @endif
         </div>
     @else
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -112,6 +131,10 @@
                     </div>
                 </div>
             @endforeach
+        </div>
+
+        <div class="mt-6">
+            {{ $this->playlists->links() }}
         </div>
     @endif
 </div>

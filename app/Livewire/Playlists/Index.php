@@ -7,18 +7,37 @@ use App\Services\RfidReader;
 use App\Services\RfidTagNormalizer;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
+use Livewire\WithPagination;
 use RuntimeException;
 
 class Index extends Component
 {
+    use WithPagination;
+
     public ?int $rfidLearningPlaylistId = null;
 
     public ?string $rfidLearningFeedback = null;
 
+    public string $search = '';
+
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
     #[Computed]
     public function playlists()
     {
-        return Playlist::with('tracks')->latest()->get();
+        return Playlist::query()
+            ->with('tracks')
+            ->when($this->search !== '', function ($query): void {
+                $query->where(function ($subQuery): void {
+                    $subQuery->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhere('rfid_uid', 'like', '%'.$this->search.'%');
+                });
+            })
+            ->latest()
+            ->paginate(12);
     }
 
     public function deletePlaylist(int $playlistId): void

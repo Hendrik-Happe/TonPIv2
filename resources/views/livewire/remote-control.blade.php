@@ -85,6 +85,19 @@
 
     <div class="mt-6">
         <h2 class="mb-3 text-lg font-semibold">{{ __('Playlists') }}</h2>
+
+        <label class="input input-bordered mb-3 w-full">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+                type="text"
+                class="grow"
+                placeholder="{{ __('Search playlists...') }}"
+                wire:model.live.debounce.300ms="search"
+            />
+        </label>
+
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             @foreach($this->playlists as $playlist)
                 <button
@@ -95,6 +108,10 @@
                     <span class="text-xs opacity-80">{{ $playlist->tracks_count }} {{ __('tracks') }}</span>
                 </button>
             @endforeach
+        </div>
+
+        <div class="mt-4">
+            {{ $this->playlists->links() }}
         </div>
     </div>
 </div>
