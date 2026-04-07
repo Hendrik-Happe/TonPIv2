@@ -4,9 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=tonpi
-WorkingDirectory=/home/tonpi/TonPI
-ExecStart=/usr/bin/python3 rfid-reader/read_rfid.py
+User={{SERVICE_USER}}
+WorkingDirectory={{PROJECT_DIR}}
+EnvironmentFile=-{{PROJECT_DIR}}/.env
+SupplementaryGroups=spi gpio audio
+ExecStart={{PHP_PATH}} artisan rfid:listen
 Restart=always
 RestartSec=5
 StandardOutput=journal

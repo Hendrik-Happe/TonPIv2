@@ -4,10 +4,11 @@ After=network.target
 
 [Service]
 Type=simple
-User=tonpi
-WorkingDirectory=/home/tonpi/TonPI
-EnvironmentFile=-/home/tonpi/TonPI/.env
-ExecStart=/usr/bin/python3 gpio-control/read_gpio.py
+User={{SERVICE_USER}}
+WorkingDirectory={{PROJECT_DIR}}
+EnvironmentFile=-{{PROJECT_DIR}}/.env
+SupplementaryGroups=spi gpio audio
+ExecStart=/usr/bin/python3 {{PROJECT_DIR}}/gpio-control/read_gpio.py
 Restart=always
 RestartSec=5
 StandardOutput=journal

@@ -64,13 +64,15 @@ if [[ "$IS_ROOT" == true ]]; then
   sudo -u "$ORIGINAL_USER" php artisan app:install --skip-system-deps
 
   echo "[10/14] Installing systemd services..."
-  cp rfid-reader.service /etc/systemd/system/
-  cp gpio-control.service /etc/systemd/system/
+  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g; s|{{PHP_PATH}}|$(which php)|g" rfid-reader.service | tee /etc/systemd/system/rfid-reader.service > /dev/null
+  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g" gpio-control.service | tee /etc/systemd/system/gpio-control.service > /dev/null
   sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{PHP_PATH}}|$(which php)|g" queue-worker.service | tee /etc/systemd/system/queue-worker.service > /dev/null
   systemctl daemon-reload
   systemctl enable rfid-reader.service
   systemctl enable gpio-control.service
   systemctl enable queue-worker.service
+  systemctl start rfid-reader.service
+  systemctl start gpio-control.service
   systemctl start queue-worker.service
 
   echo "[11/14] Configuring Apache direct access..."
@@ -81,6 +83,7 @@ if [[ "$IS_ROOT" == true ]]; then
 
   echo "[12/14] Setting up user and group permissions..."
   usermod -a -G audio www-data
+  usermod -a -G spi,gpio,audio "$ORIGINAL_USER"
   usermod -a -G www-data "$ORIGINAL_USER"
 
   echo "[13/14] Setting final file permissions..."
@@ -96,7 +99,7 @@ if [[ "$IS_ROOT" == true ]]; then
   chmod 664 database/database.sqlite
 
   echo "[14/14] Restarting services..."
-  systemctl restart php8.4-fpm queue-worker
+  systemctl restart php8.4-fpm queue-worker rfid-reader gpio-control
 
   echo ""
   echo "✅ Installation complete!"
@@ -109,6 +112,8 @@ if [[ "$IS_ROOT" == true ]]; then
   echo "⚠️  To check service logs:"
   echo "   sudo journalctl -u queue-worker -f"
   echo "   sudo journalctl -u php8.4-fpm -f"
+  echo "   sudo journalctl -u rfid-reader -f"
+  echo "   sudo journalctl -u gpio-control -f"
   echo ""
 
 else
