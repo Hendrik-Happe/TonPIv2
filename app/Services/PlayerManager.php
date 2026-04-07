@@ -360,21 +360,23 @@ class PlayerManager
      */
     private function killCurrentMplayerProcess(): void
     {
+        $pid = $this->state->mplayer_pid;
+
         // Immediately clear expected_pid so any pending monitor callbacks are ignored
         $this->state->update([
             'mplayer_pid' => null,
             'expected_pid' => null,
         ]);
 
-        // Send quit via FIFO first (works cross-user, no ownership required)
-        if (file_exists($this->fifoPath)) {
-            shell_exec(sprintf('echo quit > %s 2>/dev/null &', escapeshellarg($this->fifoPath)));
-            usleep(100000);
+        if ($pid) {
+            // Graceful SIGTERM to the specific PID – does not block, works cross-user via /proc check
+            shell_exec("kill -TERM {$pid} 2>/dev/null");
+            usleep(150000);
         }
 
-        // Kill ALL mplayer processes owned by the current user as a safety net
+        // Kill ALL mplayer processes as a safety net (only affects processes we own)
         shell_exec('pkill -9 mplayer 2>/dev/null');
-        usleep(150000); // Wait 150ms to ensure all processes are dead
+        usleep(100000);
     }
 
     /**
