@@ -387,6 +387,31 @@ class PlayerManager
     }
 
     /**
+     * Reconcile the stored status against reality.
+     * If the DB says "playing" but no mplayer process is running, switch to "paused".
+     * Called by Livewire components on every poll so the UI stays consistent.
+     */
+    public function reconcilePlayingState(): void
+    {
+        $this->state = $this->state->fresh();
+
+        if (! $this->state->isPlaying()) {
+            return;
+        }
+
+        if (! $this->isMplayerProcessRunning()) {
+            \Log::info('PlayerManager: mplayer is not running while status is playing – marking as paused.', [
+                'mplayer_pid' => $this->state->mplayer_pid,
+            ]);
+
+            $this->state->update([
+                'status' => 'paused',
+                'mplayer_pid' => null,
+            ]);
+        }
+    }
+
+    /**
      * Register mplayer process ID.
      */
     public function registerMplayerPid(int $pid): void

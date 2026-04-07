@@ -26,7 +26,9 @@ class Player extends Component
 
     public function syncFromPlayerState(): void
     {
-        $state = app(PlayerManager::class)->getState();
+        $playerManager = app(PlayerManager::class);
+        $playerManager->reconcilePlayingState();
+        $state = $playerManager->getState();
 
         $this->selectedPlaylistId = $state->current_playlist_id;
         $this->volumePercentage = (int) ($state->volume_percentage ?? 100);
