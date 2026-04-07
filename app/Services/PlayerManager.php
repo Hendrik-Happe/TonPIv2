@@ -42,6 +42,7 @@ class PlayerManager
             'current_track_id' => null,
             'current_position' => 0,
             'status' => 'stopped',
+            'restart_on_next' => false,
         ]);
 
         $this->playTrackAtPosition(0);
@@ -83,6 +84,7 @@ class PlayerManager
             'current_track_id' => $track->id,
             'current_position' => $position,
             'status' => 'playing',
+            'restart_on_next' => false,
         ]);
 
         // Dispatch job to play the track
@@ -187,11 +189,46 @@ class PlayerManager
         ?string $trigger = null,
         ?string $rfidUid = null,
     ): void {
+        $this->state = $this->state->fresh();
+
         if (! $this->state->current_playlist_id) {
             return;
         }
 
-        $this->playTrackAtPosition($this->state->current_position + 1);
+        $playlist = $this->state->currentPlaylist;
+
+        if (! $playlist) {
+            return;
+        }
+
+        $tracks = $playlist->tracks()->orderBy('track_number')->get();
+
+        if ($tracks->isEmpty()) {
+            return;
+        }
+
+        $currentPosition = (int) $this->state->current_position;
+
+        if ($this->state->isPaused() && (bool) $this->state->restart_on_next) {
+            $this->playTrackAtPosition(0);
+        } elseif (isset($tracks[$currentPosition + 1])) {
+            $this->playTrackAtPosition($currentPosition + 1);
+        } elseif ($this->state->repeat_mode === 'all') {
+            $this->playTrackAtPosition(0);
+        } else {
+            if ($this->state->isPlaying()) {
+                if ($this->isMplayerProcessRunning()) {
+                    $this->sendCommandToFifo('pause');
+                } else {
+                    shell_exec('pkill -9 mplayer 2>/dev/null');
+                }
+            }
+
+            $this->state->update([
+                'status' => 'paused',
+                'restart_on_next' => false,
+            ]);
+        }
 
         $this->eventLogger->log(
             action: 'next',
@@ -211,12 +248,31 @@ class PlayerManager
         ?string $trigger = null,
         ?string $rfidUid = null,
     ): void {
+        $this->state = $this->state->fresh();
+
         if (! $this->state->current_playlist_id) {
             return;
         }
 
-        $newPosition = max(0, $this->state->current_position - 1);
-        $this->playTrackAtPosition($newPosition);
+        $currentPosition = (int) $this->state->current_position;
+
+        if ($currentPosition > 0) {
+            $this->playTrackAtPosition($currentPosition - 1);
+        } else {
+            if ($this->state->isPlaying()) {
+                if ($this->isMplayerProcessRunning()) {
+                    $this->sendCommandToFifo('pause');
+                } else {
+                    shell_exec('pkill -9 mplayer 2>/dev/null');
+                }
+            }
+
+            $this->state->update([
+                'status' => 'paused',
+                'current_position' => 0,
+                'restart_on_next' => true,
+            ]);
+        }
 
         $this->eventLogger->log(
             action: 'previous',
@@ -246,6 +302,7 @@ class PlayerManager
             'status' => 'stopped',
             'mplayer_pid' => null,
             'expected_pid' => null,
+            'restart_on_next' => false,
         ]);
 
         if ($shouldLog) {

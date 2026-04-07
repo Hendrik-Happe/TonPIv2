@@ -65,7 +65,7 @@ class PlayerTest extends TestCase
         $this->assertEquals(0, $state->current_position);
     }
 
-    public function test_player_cannot_go_before_first_track(): void
+    public function test_player_pauses_when_pressing_previous_on_first_track(): void
     {
         $playerManager = app(PlayerManager::class);
 
@@ -74,9 +74,11 @@ class PlayerTest extends TestCase
 
         $state = $playerManager->getState();
         $this->assertEquals(0, $state->current_position);
+        $this->assertEquals('paused', $state->status);
+        $this->assertTrue((bool) $state->restart_on_next);
     }
 
-    public function test_player_stops_at_end_with_no_repeat(): void
+    public function test_player_pauses_at_end_with_no_repeat_when_pressing_next(): void
     {
         $playerManager = app(PlayerManager::class);
 
@@ -91,7 +93,29 @@ class PlayerTest extends TestCase
         $playerManager->next();
 
         $state = $playerManager->getState();
-        $this->assertEquals('stopped', $state->status);
+        $this->assertEquals(2, $state->current_position);
+        $this->assertEquals('paused', $state->status);
+        $this->assertFalse((bool) $state->restart_on_next);
+    }
+
+    public function test_player_restarts_first_track_when_next_after_previous_on_first_track(): void
+    {
+        $playerManager = app(PlayerManager::class);
+
+        $playerManager->playPlaylist($this->playlist);
+        $firstTrackId = $playerManager->getState()->current_track_id;
+
+        // At first track, previous should pause and arm restart-on-next behavior
+        $playerManager->previous();
+
+        // Next should restart first track (not jump to second)
+        $playerManager->next();
+
+        $state = $playerManager->getState();
+        $this->assertEquals(0, $state->current_position);
+        $this->assertEquals('playing', $state->status);
+        $this->assertEquals($firstTrackId, $state->current_track_id);
+        $this->assertFalse((bool) $state->restart_on_next);
     }
 
     public function test_player_repeats_playlist_with_repeat_all(): void

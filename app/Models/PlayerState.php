@@ -17,6 +17,7 @@ class PlayerState extends Model
         'volume_percentage',
         'mplayer_pid',
         'expected_pid',
+        'restart_on_next',
     ];
 
     protected $casts = [
@@ -24,6 +25,7 @@ class PlayerState extends Model
         'volume_percentage' => 'integer',
         'mplayer_pid' => 'integer',
         'expected_pid' => 'integer',
+        'restart_on_next' => 'boolean',
     ];
 
     public function currentPlaylist()
