@@ -67,7 +67,23 @@ BUTTON_PINS = [
 
 
 def cleanup_gpio():
-    """Release any stale GPIO state from a previous (crashed) run."""
+    """Release any stale GPIO state from a previous (crashed) run.
+
+    GPIO.cleanup() only frees state in the current process.
+    Writing to /sys/class/gpio/unexport releases the kernel sysfs entries
+    from any previous process, which is required to re-register edge detection.
+    """
+    ALL_PINS = BUTTON_PINS + [LED_READY_PIN, LED_PLAYING_PIN]
+
+    # Kernel-level cleanup – works across processes
+    for pin in ALL_PINS:
+        try:
+            with open("/sys/class/gpio/unexport", "w") as f:
+                f.write(str(pin))
+        except (OSError, IOError):
+            pass  # Not currently exported – that's fine
+
+    # In-process cleanup as a secondary measure
     try:
         for pin in BUTTON_PINS:
             try:
