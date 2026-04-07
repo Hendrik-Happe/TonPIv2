@@ -18,8 +18,6 @@ class Home extends Component
 
     public function playPlaylist(int $playlistId): void
     {
-        abort_unless(Auth::check(), 403);
-
         $playlist = Playlist::findOrFail($playlistId);
         $playerManager = app(PlayerManager::class);
         $playerManager->playPlaylist($playlist, 'ui', 'home-card');
