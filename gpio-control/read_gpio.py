@@ -109,53 +109,51 @@ def setup_gpio():
     GPIO.output(LED_PLAYING_PIN, GPIO.LOW)
 
 
-def add_event_detects():
-    """Register edge detection for all button pins with retry on failure."""
-    button_events = [
-        (BUTTON_PREVIOUS_PIN, "PREVIOUS"),
-        (BUTTON_NEXT_PIN, "NEXT"),
-        (BUTTON_VOLUME_DOWN_PIN, "VOLUME_DOWN"),
-        (BUTTON_VOLUME_UP_PIN, "VOLUME_UP"),
-    ]
+BUTTON_EVENTS = [
+    (BUTTON_PREVIOUS_PIN, "PREVIOUS"),
+    (BUTTON_NEXT_PIN, "NEXT"),
+    (BUTTON_VOLUME_DOWN_PIN, "VOLUME_DOWN"),
+    (BUTTON_VOLUME_UP_PIN, "VOLUME_UP"),
+]
 
-    for pin, event_name in button_events:
-        for attempt in range(3):
-            try:
-                GPIO.remove_event_detect(pin)
-            except Exception:
-                pass
-            try:
-                GPIO.add_event_detect(
-                    pin,
-                    GPIO.FALLING,
-                    callback=lambda channel, name=event_name: emit(name),
-                    bouncetime=BUTTON_DEBOUNCE_MS,
-                )
-                break
-            except RuntimeError:
-                if attempt == 2:
-                    raise
-                time.sleep(0.5)
+# Polling interval for button reads (20 ms is responsive enough and CPU-friendly)
+BUTTON_POLL_INTERVAL = 0.02
 
 
 # Clean up any stale state from a previous run before initialising
 cleanup_gpio()
 time.sleep(0.2)
 setup_gpio()
-# Small delay to let the kernel finish exporting the GPIO sysfs entries
-time.sleep(0.1)
-add_event_detects()
+
+# Track previous pin states for edge (HIGH→LOW) detection and debounce
+prev_states: dict[int, int] = {pin: GPIO.HIGH for pin, _ in BUTTON_EVENTS}
+last_trigger: dict[int, float] = {pin: 0.0 for pin, _ in BUTTON_EVENTS}
+
+led_poll_interval = max(0.05, LED_POLL_INTERVAL_MS / 1000.0)
+debounce_seconds = BUTTON_DEBOUNCE_MS / 1000.0
+last_led_poll = 0.0
 
 try:
     while running:
-        status = read_player_status()
+        now = time.monotonic()
 
-        if status == "playing":
-            GPIO.output(LED_PLAYING_PIN, GPIO.HIGH)
-        else:
-            GPIO.output(LED_PLAYING_PIN, GPIO.LOW)
+        # Button polling (replaces edge detection, works on all kernel versions)
+        for pin, event_name in BUTTON_EVENTS:
+            current = GPIO.input(pin)
+            # Detect falling edge (HIGH → LOW = button pressed) with debounce
+            if prev_states[pin] == GPIO.HIGH and current == GPIO.LOW:
+                if now - last_trigger[pin] >= debounce_seconds:
+                    emit(event_name)
+                    last_trigger[pin] = now
+            prev_states[pin] = current
 
-        time.sleep(max(0.05, LED_POLL_INTERVAL_MS / 1000.0))
+        # LED update at a lower frequency to avoid hammering the DB
+        if now - last_led_poll >= led_poll_interval:
+            status = read_player_status()
+            GPIO.output(LED_PLAYING_PIN, GPIO.HIGH if status == "playing" else GPIO.LOW)
+            last_led_poll = now
+
+        time.sleep(BUTTON_POLL_INTERVAL)
 finally:
     GPIO.output(LED_READY_PIN, GPIO.LOW)
     GPIO.output(LED_PLAYING_PIN, GPIO.LOW)
