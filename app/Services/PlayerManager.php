@@ -366,13 +366,20 @@ class PlayerManager
             'expected_pid' => null,
         ]);
 
-        // Kill ALL mplayer processes to ensure clean state
+        // Send quit via FIFO first (works cross-user, no ownership required)
+        if (file_exists($this->fifoPath)) {
+            shell_exec(sprintf('echo quit > %s 2>/dev/null &', escapeshellarg($this->fifoPath)));
+            usleep(100000);
+        }
+
+        // Kill ALL mplayer processes owned by the current user as a safety net
         shell_exec('pkill -9 mplayer 2>/dev/null');
         usleep(150000); // Wait 150ms to ensure all processes are dead
     }
 
     /**
      * Check if the current mplayer process is still running.
+     * Uses /proc filesystem instead of posix_kill so it works across different users.
      */
     private function isMplayerProcessRunning(): bool
     {
@@ -380,7 +387,7 @@ class PlayerManager
             return false;
         }
 
-        return posix_kill($this->state->mplayer_pid, 0);
+        return file_exists('/proc/'.$this->state->mplayer_pid);
     }
 
     /**
