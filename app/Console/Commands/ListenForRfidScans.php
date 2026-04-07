@@ -67,6 +67,12 @@ class ListenForRfidScans extends Command
                 $state = $playerManager->getState();
                 $currentPlaylistRfidUid = $state->currentPlaylist?->rfid_uid;
 
+                if ($state->isPlaying() && $currentPlaylistRfidUid === $normalizedUid) {
+                    $this->info(sprintf('Playback is already running for RFID chip %s.', $normalizedUid));
+
+                    return;
+                }
+
                 if ($state->isPaused() && $currentPlaylistRfidUid === $normalizedUid) {
                     $playerManager->resume('rfid', 'present', $normalizedUid);
                     $this->info(sprintf('Resumed playback for RFID chip %s.', $normalizedUid));
