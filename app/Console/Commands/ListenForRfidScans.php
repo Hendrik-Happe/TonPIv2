@@ -42,6 +42,10 @@ class ListenForRfidScans extends Command
                     if ($lastUid === $normalizedUid) {
                         $playerManager->pause('rfid', 'removed', $normalizedUid);
                         $this->info(sprintf('Paused playback because RFID chip %s was removed.', $normalizedUid));
+
+                        // Clear debounce state so re-presenting the same chip can act immediately.
+                        $lastUid = null;
+                        $lastSeenAt = null;
                     }
 
                     return;
@@ -59,6 +63,16 @@ class ListenForRfidScans extends Command
 
                 $lastUid = $normalizedUid;
                 $lastSeenAt = $now;
+
+                $state = $playerManager->getState();
+                $currentPlaylistRfidUid = $state->currentPlaylist?->rfid_uid;
+
+                if ($state->isPaused() && $currentPlaylistRfidUid === $normalizedUid) {
+                    $playerManager->resume('rfid', 'present', $normalizedUid);
+                    $this->info(sprintf('Resumed playback for RFID chip %s.', $normalizedUid));
+
+                    return;
+                }
 
                 $playlist = $playlistPlayer->playForUid($normalizedUid);
 

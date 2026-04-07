@@ -157,6 +157,61 @@ class RfidPlaylistTest extends TestCase
         ]);
     }
 
+    public function test_listener_command_resumes_when_same_chip_is_represented_after_removal(): void
+    {
+        $playlist = Playlist::factory()
+            ->has(Track::factory()->count(2))
+            ->create([
+                'name' => 'Resume On Re-Scan Playlist',
+                'rfid_uid' => 'C253032FBD',
+            ]);
+
+        $reader = $this->mock(RfidReader::class);
+        $reader->shouldReceive('listen')
+            ->once()
+            ->withArgs(function ($callback) {
+                $callback('present', 'C2 53 03 2F BD');
+                $callback('removed', 'C2 53 03 2F BD');
+                $callback('present', 'C2 53 03 2F BD');
+
+                return true;
+            });
+
+        $this->artisan('rfid:listen')
+            ->expectsOutput('Listening for RFID chip scans...')
+            ->expectsOutput('Started playlist "Resume On Re-Scan Playlist" for RFID chip C253032FBD.')
+            ->expectsOutput('Paused playback because RFID chip C253032FBD was removed.')
+            ->expectsOutput('Resumed playback for RFID chip C253032FBD.')
+            ->assertSuccessful();
+
+        $state = app(PlayerManager::class)->getState();
+        $this->assertSame('playing', $state->status);
+        $this->assertSame($playlist->id, $state->current_playlist_id);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'started',
+            'source' => 'rfid',
+            'playlist_id' => $playlist->id,
+            'rfid_uid' => 'C253032FBD',
+            'trigger' => 'present',
+        ]);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'paused',
+            'source' => 'rfid',
+            'rfid_uid' => 'C253032FBD',
+            'trigger' => 'removed',
+        ]);
+
+        $this->assertDatabaseHas('playback_events', [
+            'action' => 'resumed',
+            'source' => 'rfid',
+            'playlist_id' => $playlist->id,
+            'rfid_uid' => 'C253032FBD',
+            'trigger' => 'present',
+        ]);
+    }
+
     public function test_create_component_saves_normalized_rfid_uid(): void
     {
         $user = User::factory()->create();
