@@ -14,11 +14,17 @@ running = True
 reader = SimpleMFRC522()
 current_uid = None
 db_path = "database/database.sqlite"
+# Require continuous read absence before emitting REMOVED.
+ABSENT_CONFIRMATION_SECONDS = 0.5
+# Re-create reader object if no valid UID could be read for a while.
+READER_REINIT_AFTER_SECONDS = 10.0
 
 
 def stop_listener(signum, frame):
     del signum
     del frame
+
+    print("Stopping RFID listener...", file=sys.stderr, flush=True)
 
     global running
     running = False
@@ -49,6 +55,8 @@ def update_rfid_status_in_db(uid):
             VALUES (1, ?, CURRENT_TIMESTAMP)
         ''', (uid,))
 
+        print(f"Database updated with UID: {uid}", file=sys.stderr, flush=True)
+
         conn.commit()
         conn.close()
     except Exception as e:
@@ -58,40 +66,39 @@ def update_rfid_status_in_db(uid):
 def read_uid_continuous():
     """Continuously read RFID tags and update database"""
     global current_uid
+    last_present_at = None
+    last_valid_read_at = time.monotonic()
+    last_reinit_at = 0.0
 
     while running:
         try:
             status, _ = reader.READER.MFRC522_Request(reader.READER.PICC_REQIDL)
-
+            now = time.monotonic()
             if status == reader.READER.MI_OK:
                 status, uid = reader.READER.MFRC522_Anticoll()
-
                 if status == reader.READER.MI_OK and uid:
                     uid_str = "".join(f"{part:02X}" for part in uid)
-
+                    last_present_at = now
+                    last_valid_read_at = now
                     if uid_str != current_uid:
                         current_uid = uid_str
                         print(f"PRESENT:{uid_str}", flush=True)
                         update_rfid_status_in_db(uid_str)
-                else:
-                    # No tag present
-                    if current_uid is not None:
-                        current_uid = None
-                        print("ABSENT", flush=True)
-                        update_rfid_status_in_db(None)
-            else:
-                # No tag present
-                if current_uid is not None:
-                    current_uid = None
-                    print("ABSENT", flush=True)
-                    update_rfid_status_in_db(None)
+            if (
+                current_uid is not None
+                and last_present_at is not None
+                and (now - last_present_at) >= ABSENT_CONFIRMATION_SECONDS
+            ):
+                removed_uid = current_uid
+                current_uid = None
+                last_present_at = None
+                print(f"REMOVED:{removed_uid}", flush=True)
+                update_rfid_status_in_db(None)
 
             time.sleep(0.1)  # Small delay to prevent busy waiting
-
         except Exception as e:
             print(f"RFID Error: {e}", file=sys.stderr)
             time.sleep(1)  # Wait before retrying
-
 
 def read_uid_once():
     status, _ = reader.READER.MFRC522_Request(reader.READER.PICC_REQIDL)
@@ -137,7 +144,7 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        print("Cleaning up RFID reader...", flush=True)
+        print("Cleaning up RFID reader...", file=sys.stderr, flush=True)
         GPIO.cleanup()
 
     return 0
