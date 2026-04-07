@@ -97,12 +97,17 @@ class PlayerManager
         ?string $trigger = null,
         ?string $rfidUid = null,
     ): void {
+        $this->state = $this->state->fresh();
+
         if (! $this->state->isPlaying()) {
             return;
         }
 
         if ($this->isMplayerProcessRunning()) {
             $this->sendCommandToFifo('pause');
+        } else {
+            // mplayer process not found – kill any stray processes as a fallback
+            shell_exec('pkill -9 mplayer 2>/dev/null');
         }
 
         $this->state->update(['status' => 'paused']);
@@ -125,6 +130,8 @@ class PlayerManager
         ?string $trigger = null,
         ?string $rfidUid = null,
     ): void {
+        $this->state = $this->state->fresh();
+
         if ($this->state->isPaused()) {
             if ($this->isMplayerProcessRunning()) {
                 $this->sendCommandToFifo('pause');
@@ -163,6 +170,8 @@ class PlayerManager
         ?string $trigger = null,
         ?string $rfidUid = null,
     ): void {
+        $this->state = $this->state->fresh();
+
         if ($this->state->isPlaying()) {
             $this->pause($source, $trigger, $rfidUid);
         } elseif ($this->state->isPaused()) {
