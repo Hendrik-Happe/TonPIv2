@@ -212,6 +212,45 @@ class RfidPlaylistTest extends TestCase
         ]);
     }
 
+    public function test_listener_command_does_not_restart_when_same_chip_is_presented_while_same_playlist_is_already_playing(): void
+    {
+        $playlist = Playlist::factory()
+            ->has(Track::factory()->count(3))
+            ->create([
+                'name' => 'Keep Position Playlist',
+                'rfid_uid' => 'AA11BB22CC',
+            ]);
+
+        $reader = $this->mock(RfidReader::class);
+        $reader->shouldReceive('listen')
+            ->once()
+            ->withArgs(function ($callback) {
+                $callback('present', 'AA 11 BB 22 CC');
+                $callback('removed', 'AA 11 BB 22 CC');
+
+                // Manually continue playback and advance to track 2 (index 1).
+                app(PlayerManager::class)->resume('ui', 'manual');
+                app(PlayerManager::class)->next('ui', 'manual');
+
+                // Re-presenting same chip must not restart from track 1.
+                $callback('present', 'AA 11 BB 22 CC');
+
+                return true;
+            });
+
+        $this->artisan('rfid:listen')
+            ->expectsOutput('Listening for RFID chip scans...')
+            ->expectsOutput('Started playlist "Keep Position Playlist" for RFID chip AA11BB22CC.')
+            ->expectsOutput('Paused playback because RFID chip AA11BB22CC was removed.')
+            ->expectsOutput('Playback is already running for RFID chip AA11BB22CC.')
+            ->assertSuccessful();
+
+        $state = app(PlayerManager::class)->getState();
+        $this->assertSame('playing', $state->status);
+        $this->assertSame($playlist->id, $state->current_playlist_id);
+        $this->assertSame(1, $state->current_position);
+    }
+
     public function test_create_component_saves_normalized_rfid_uid(): void
     {
         $user = User::factory()->create();
