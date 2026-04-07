@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\PlayerManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Queue;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class PlayerTest extends TestCase
@@ -190,5 +191,22 @@ class PlayerTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSeeLivewire('player');
+    }
+
+    public function test_player_component_syncs_volume_from_player_state(): void
+    {
+        $user = User::factory()->create();
+        app(PlayerManager::class)->setVolume(41);
+
+        $component = Livewire::actingAs($user)
+            ->test('player')
+            ->assertSet('volumePercentage', 41);
+
+        // Simulate external update (e.g. GPIO button press)
+        app(PlayerManager::class)->setVolume(58);
+
+        $component
+            ->call('syncFromPlayerState')
+            ->assertSet('volumePercentage', 58);
     }
 }

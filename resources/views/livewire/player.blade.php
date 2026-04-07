@@ -1,4 +1,4 @@
-<div class="bg-base-100 border-t border-base-300 p-3 sm:p-4" wire:poll.2s>
+<div class="bg-base-100 border-t border-base-300 p-3 sm:p-4" wire:poll.2s="syncFromPlayerState">
     <div class="max-w-7xl mx-auto">
         @if($this->currentPlaylist)
             <div class="flex flex-col gap-3">

@@ -21,8 +21,13 @@ class Player extends Component
 
     public function mount(): void
     {
-        $playerManager = app(PlayerManager::class);
-        $state = $playerManager->getState();
+        $this->syncFromPlayerState();
+    }
+
+    public function syncFromPlayerState(): void
+    {
+        $state = app(PlayerManager::class)->getState();
+
         $this->selectedPlaylistId = $state->current_playlist_id;
         $this->volumePercentage = (int) ($state->volume_percentage ?? 100);
     }

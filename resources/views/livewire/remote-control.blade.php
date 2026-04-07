@@ -1,4 +1,4 @@
-<div class="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8" wire:poll.2s>
+<div class="mx-auto max-w-4xl p-4 sm:p-6 lg:p-8" wire:poll.2s="syncFromPlayerState">
     <div class="mb-6 flex items-center justify-between gap-3">
         <div>
             <h1 class="text-2xl font-bold sm:text-3xl">{{ __('Remote Control') }}</h1>

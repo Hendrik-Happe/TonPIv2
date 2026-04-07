@@ -34,11 +34,12 @@ class RemoteControlTest extends TestCase
         $response->assertSee('Remote Control');
     }
 
-    public function test_guest_cannot_access_remote_control_page(): void
+    public function test_guest_can_access_remote_control_page(): void
     {
         $response = $this->get(route('remote-control'));
 
-        $response->assertRedirect('/login');
+        $response->assertStatus(200);
+        $response->assertSeeLivewire(RemoteControl::class);
     }
 
     public function test_remote_control_can_start_playlist(): void
@@ -83,5 +84,22 @@ class RemoteControlTest extends TestCase
             ->set('volumePercentage', 44);
 
         $this->assertSame(44, app(PlayerManager::class)->getState()->volume_percentage);
+    }
+
+    public function test_remote_control_syncs_volume_from_player_state(): void
+    {
+        $user = User::factory()->create();
+        app(PlayerManager::class)->setVolume(35);
+
+        $component = Livewire::actingAs($user)
+            ->test(RemoteControl::class)
+            ->assertSet('volumePercentage', 35);
+
+        // Simulate external update (e.g. GPIO button press)
+        app(PlayerManager::class)->setVolume(52);
+
+        $component
+            ->call('syncFromPlayerState')
+            ->assertSet('volumePercentage', 52);
     }
 }

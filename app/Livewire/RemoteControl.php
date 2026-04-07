@@ -22,6 +22,11 @@ class RemoteControl extends Component
 
     public function mount(): void
     {
+        $this->syncFromPlayerState();
+    }
+
+    public function syncFromPlayerState(): void
+    {
         $state = app(PlayerManager::class)->getState();
 
         $this->selectedPlaylistId = $state->current_playlist_id;
