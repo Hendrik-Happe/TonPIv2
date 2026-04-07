@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Models\PlayerState;
 use App\Models\Track;
 use App\Services\PlayerManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -31,10 +32,23 @@ class PlayTrack implements ShouldQueue
     public function handle(PlayerManager $playerManager): void
     {
         try {
+            $state = PlayerState::global()->fresh();
+
+            // Ignore outdated jobs when users skip quickly and multiple jobs are queued.
+            if ((int) $state->current_track_id !== (int) $this->track->id || $state->status !== 'playing') {
+                \Log::info('PlayTrack Job: Skipped stale playback job', [
+                    'job_track_id' => $this->track->id,
+                    'state_track_id' => $state->current_track_id,
+                    'state_status' => $state->status,
+                ]);
+
+                return;
+            }
+
             $fifoPath = config('player.player.fifo_path');
             $filePath = $this->track->file_path;
 
-            \Log::info("PlayTrack Job: Starting playback", [
+            \Log::info('PlayTrack Job: Starting playback', [
                 'track_id' => $this->track->id,
                 'track_title' => $this->track->title,
                 'file_path' => $filePath,
@@ -43,7 +57,7 @@ class PlayTrack implements ShouldQueue
 
             // Überprüfe ob Datei existiert
             if (! file_exists($filePath)) {
-                \Log::error("PlayTrack Job: File not found", [
+                \Log::error('PlayTrack Job: File not found', [
                     'track_id' => $this->track->id,
                     'file_path' => $filePath,
                 ]);
@@ -53,7 +67,7 @@ class PlayTrack implements ShouldQueue
             // Erstelle FIFO falls nicht vorhanden
             if (! file_exists($fifoPath)) {
                 if (! posix_mkfifo($fifoPath, 0666)) {
-                    \Log::error("PlayTrack Job: Failed to create FIFO", [
+                    \Log::error('PlayTrack Job: Failed to create FIFO', [
                         'fifo_path' => $fifoPath,
                     ]);
                     throw new \Exception("Failed to create FIFO at: {$fifoPath}");
@@ -68,7 +82,7 @@ class PlayTrack implements ShouldQueue
                 time()
             );
 
-            \Log::info("PlayTrack Job: Executing command", [
+            \Log::info('PlayTrack Job: Executing command', [
                 'command' => $command,
             ]);
 
@@ -78,7 +92,7 @@ class PlayTrack implements ShouldQueue
                 // Register PID with PlayerManager
                 $playerManager->registerMplayerPid($pid);
 
-                \Log::info("PlayTrack Job: mplayer started successfully", [
+                \Log::info('PlayTrack Job: mplayer started successfully', [
                     'track_id' => $this->track->id,
                     'track_title' => $this->track->title,
                     'pid' => $pid,
@@ -87,14 +101,14 @@ class PlayTrack implements ShouldQueue
                 // Start a background process to monitor when mplayer finishes
                 $this->monitorMplayerProcess($pid);
             } else {
-                \Log::error("PlayTrack Job: Failed to start mplayer", [
+                \Log::error('PlayTrack Job: Failed to start mplayer', [
                     'track_id' => $this->track->id,
                     'track_title' => $this->track->title,
                 ]);
-                throw new \Exception("Failed to start mplayer process");
+                throw new \Exception('Failed to start mplayer process');
             }
         } catch (\Exception $e) {
-            \Log::error("PlayTrack Job: Error", [
+            \Log::error('PlayTrack Job: Error', [
                 'track_id' => $this->track->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -122,6 +136,6 @@ class PlayTrack implements ShouldQueue
 
         shell_exec($monitorScript);
 
-        \Log::info("PlayTrack Job: Monitor process started", ['pid' => $pid]);
+        \Log::info('PlayTrack Job: Monitor process started', ['pid' => $pid]);
     }
 }
