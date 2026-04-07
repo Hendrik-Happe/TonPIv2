@@ -74,5 +74,8 @@ class SecurityTest extends TestCase
             ->call('updatePassword');
 
         $response->assertHasErrors(['current_password']);
+        $response->assertSet('current_password', 'wrong-password');
+        $response->assertSet('password', 'new-password');
+        $response->assertSet('password_confirmation', 'new-password');
     }
 }

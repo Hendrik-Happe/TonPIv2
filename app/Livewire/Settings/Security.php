@@ -4,7 +4,6 @@ namespace App\Livewire\Settings;
 
 use App\Concerns\PasswordValidationRules;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -24,16 +23,10 @@ class Security extends Component
      */
     public function updatePassword(): void
     {
-        try {
-            $validated = $this->validate([
-                'current_password' => $this->currentPasswordRules(),
-                'password' => $this->passwordRules(),
-            ]);
-        } catch (ValidationException $e) {
-            $this->reset('current_password', 'password', 'password_confirmation');
-
-            throw $e;
-        }
+        $validated = $this->validate([
+            'current_password' => $this->currentPasswordRules(),
+            'password' => $this->passwordRules(),
+        ]);
 
         Auth::user()->update([
             'password' => $validated['password'],
