@@ -1,7 +1,7 @@
 <div class="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8" wire:poll.5s>
     <div class="mb-6">
-        <h1 class="text-2xl sm:text-3xl font-bold">{{ __('Hardware Status') }}</h1>
-        <p class="text-base-content/60 mt-2">{{ __('Live status of audio, RFID, GPIO and system services.') }}</p>
+        <h1 class="text-2xl sm:text-3xl font-bold">{{ __('System Status') }}</h1>
+        <p class="text-base-content/60 mt-2">{{ __('Live status of services, hardware and configured commands.') }}</p>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

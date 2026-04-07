@@ -13,12 +13,13 @@ class SystemStatusService
             $this->commandItem('MPlayer', 'mplayer'),
             $this->commandItem('FFprobe', 'ffprobe'),
             $this->spiItem(),
-            $this->serviceItem('Queue Service', 'tonpi-player-queue.service'),
-            $this->serviceItem('RFID Service', 'tonpi-rfid-listener.service'),
-            $this->serviceItem('GPIO Service', 'tonpi-gpio-controls.service'),
-            $this->serviceItem('Web Service', 'tonpi-web.service'),
-            $this->configuredCommandItem('RFID Reader Command', (string) env('RFID_READER_COMMAND', '')),
-            $this->configuredCommandItem('GPIO Control Command', (string) env('GPIO_CONTROL_COMMAND', '')),
+            $this->serviceItem('Queue Service', ['queue-worker.service', 'tonpi-player-queue.service']),
+            $this->serviceItem('RFID Service', ['rfid-reader.service', 'tonpi-rfid-listener.service']),
+            $this->serviceItem('GPIO Service', ['gpio-control.service', 'tonpi-gpio-controls.service']),
+            $this->serviceItem('Web Service', ['apache2.service', 'tonpi-web.service']),
+            $this->serviceItem('PHP-FPM Service', ['php8.4-fpm.service', 'php-fpm.service']),
+            $this->configuredCommandItem('RFID Reader Command', (string) config('rfid.reader_command', '')),
+            $this->configuredCommandItem('GPIO Control Command', (string) config('gpio.control_command', '')),
             $this->sqliteItem(),
         ];
     }
@@ -36,18 +37,31 @@ class SystemStatusService
         ];
     }
 
-    private function serviceItem(string $label, string $serviceName): array
+    /**
+     * @param  array<int, string>  $serviceNames
+     */
+    private function serviceItem(string $label, array $serviceNames): array
     {
-        $result = Process::path(base_path())
-            ->timeout(2)
-            ->run(sprintf('systemctl is-active %s', escapeshellarg($serviceName)));
+        foreach ($serviceNames as $serviceName) {
+            $result = Process::path(base_path())
+                ->timeout(2)
+                ->run(sprintf('systemctl is-active %s', escapeshellarg($serviceName)));
 
-        $isActive = ! $result->failed() && trim($result->output()) === 'active';
+            $isActive = ! $result->failed() && trim($result->output()) === 'active';
+
+            if ($isActive) {
+                return [
+                    'label' => $label,
+                    'ok' => true,
+                    'detail' => sprintf('Active (%s)', $serviceName),
+                ];
+            }
+        }
 
         return [
             'label' => $label,
-            'ok' => $isActive,
-            'detail' => $isActive ? 'Active' : 'Inactive',
+            'ok' => false,
+            'detail' => sprintf('Inactive (checked: %s)', implode(', ', $serviceNames)),
         ];
     }
 

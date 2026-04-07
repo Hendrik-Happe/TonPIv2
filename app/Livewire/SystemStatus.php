@@ -7,7 +7,7 @@ use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
-#[Title('Hardware Status')]
+#[Title('System Status')]
 class SystemStatus extends Component
 {
     #[Computed]

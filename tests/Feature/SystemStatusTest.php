@@ -19,7 +19,7 @@ class SystemStatusTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSeeLivewire(SystemStatus::class);
-        $response->assertSee('Hardware Status');
+        $response->assertSee('System Status');
     }
 
     public function test_guest_cannot_access_system_status_page(): void
