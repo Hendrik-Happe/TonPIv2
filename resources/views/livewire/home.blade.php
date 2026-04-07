@@ -1,6 +1,22 @@
-<div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+<div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl" wire:poll.2s>
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 class="text-2xl sm:text-3xl font-bold">{{ __('Your Playlists') }}</h1>
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold">{{ __('Your Playlists') }}</h1>
+            @if($this->playerState->rfid_chip_present)
+                <div class="mt-2 badge badge-success gap-2">
+                    <span class="status status-success"></span>
+                    {{ __('RFID chip present') }}
+                    @if($this->playerState->present_rfid_uid)
+                        ({{ $this->playerState->present_rfid_uid }})
+                    @endif
+                </div>
+            @else
+                <div class="mt-2 badge badge-ghost gap-2">
+                    <span class="status status-neutral"></span>
+                    {{ __('No RFID chip present') }}
+                </div>
+            @endif
+        </div>
         @auth
         <a href="/playlists/create" wire:navigate class="btn btn-primary btn-sm sm:btn-md">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

@@ -3,6 +3,20 @@
         <div>
             <h1 class="text-2xl font-bold sm:text-3xl">{{ __('Remote Control') }}</h1>
             <p class="mt-1 text-sm text-base-content/60">{{ __('Steuere die Wiedergabe direkt vom Handy oder Browser.') }}</p>
+            @if($this->playerState->rfid_chip_present)
+                <div class="mt-2 badge badge-success gap-2">
+                    <span class="status status-success"></span>
+                    {{ __('RFID chip present') }}
+                    @if($this->playerState->present_rfid_uid)
+                        ({{ $this->playerState->present_rfid_uid }})
+                    @endif
+                </div>
+            @else
+                <div class="mt-2 badge badge-ghost gap-2">
+                    <span class="status status-neutral"></span>
+                    {{ __('No RFID chip present') }}
+                </div>
+            @endif
         </div>
         @if($this->playerState->status === 'playing')
             <span class="badge badge-success">{{ __('Playing') }}</span>

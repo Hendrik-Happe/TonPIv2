@@ -18,6 +18,8 @@ class PlayerState extends Model
         'mplayer_pid',
         'expected_pid',
         'restart_on_next',
+        'rfid_chip_present',
+        'present_rfid_uid',
     ];
 
     protected $casts = [
@@ -26,6 +28,7 @@ class PlayerState extends Model
         'mplayer_pid' => 'integer',
         'expected_pid' => 'integer',
         'restart_on_next' => 'boolean',
+        'rfid_chip_present' => 'boolean',
     ];
 
     public function currentPlaylist()

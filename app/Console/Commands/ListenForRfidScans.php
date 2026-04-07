@@ -38,7 +38,16 @@ class ListenForRfidScans extends Command
                     return;
                 }
 
+                $state = $playerManager->getState();
+
                 if ($event === 'removed') {
+                    if ($state->present_rfid_uid === $normalizedUid || (bool) $state->rfid_chip_present) {
+                        $state->update([
+                            'rfid_chip_present' => false,
+                            'present_rfid_uid' => null,
+                        ]);
+                    }
+
                     if ($lastUid === $normalizedUid) {
                         $playerManager->pause('rfid', 'removed', $normalizedUid);
                         $this->info(sprintf('Paused playback because RFID chip %s was removed.', $normalizedUid));
@@ -50,6 +59,11 @@ class ListenForRfidScans extends Command
 
                     return;
                 }
+
+                $state->update([
+                    'rfid_chip_present' => true,
+                    'present_rfid_uid' => $normalizedUid,
+                ]);
 
                 $now = now();
 

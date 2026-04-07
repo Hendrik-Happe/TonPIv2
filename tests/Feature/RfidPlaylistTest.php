@@ -103,7 +103,10 @@ class RfidPlaylistTest extends TestCase
             ->expectsOutput('Started playlist "Command Playlist" for RFID chip ABCD1234.')
             ->assertSuccessful();
 
-        $this->assertSame('playing', app(PlayerManager::class)->getState()->status);
+        $state = app(PlayerManager::class)->getState();
+        $this->assertSame('playing', $state->status);
+        $this->assertTrue((bool) $state->rfid_chip_present);
+        $this->assertSame('ABCD1234', $state->present_rfid_uid);
 
         $this->assertDatabaseHas('playback_events', [
             'action' => 'started',
@@ -139,7 +142,10 @@ class RfidPlaylistTest extends TestCase
             ->expectsOutput('Paused playback because RFID chip DEADBEAF was removed.')
             ->assertSuccessful();
 
-        $this->assertSame('paused', app(PlayerManager::class)->getState()->status);
+        $state = app(PlayerManager::class)->getState();
+        $this->assertSame('paused', $state->status);
+        $this->assertFalse((bool) $state->rfid_chip_present);
+        $this->assertNull($state->present_rfid_uid);
 
         $this->assertDatabaseHas('playback_events', [
             'action' => 'started',

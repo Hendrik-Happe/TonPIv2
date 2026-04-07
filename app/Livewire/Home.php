@@ -4,12 +4,17 @@ namespace App\Livewire;
 
 use App\Models\Playlist;
 use App\Services\PlayerManager;
-use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Component;
 
 class Home extends Component
 {
+    #[Computed]
+    public function playerState()
+    {
+        return app(PlayerManager::class)->getState();
+    }
+
     #[Computed]
     public function playlists()
     {
