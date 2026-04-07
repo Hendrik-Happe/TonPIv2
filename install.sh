@@ -65,7 +65,7 @@ if [[ "$IS_ROOT" == true ]]; then
 
   echo "[10/14] Installing systemd services..."
   sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g; s|{{PHP_PATH}}|$(which php)|g" rfid-reader.service | tee /etc/systemd/system/rfid-reader.service > /dev/null
-  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g" gpio-control.service | tee /etc/systemd/system/gpio-control.service > /dev/null
+  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g; s|{{PHP_PATH}}|$(which php)|g" gpio-control.service | tee /etc/systemd/system/gpio-control.service > /dev/null
   sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g; s|{{PHP_PATH}}|$(which php)|g" queue-worker.service | tee /etc/systemd/system/queue-worker.service > /dev/null
   systemctl daemon-reload
   systemctl enable rfid-reader.service
