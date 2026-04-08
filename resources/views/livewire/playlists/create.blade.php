@@ -93,6 +93,21 @@
             @endif
         </div>
 
+        <div class="form-control mb-6">
+            <label class="label">
+                <span class="label-text">Tags</span>
+            </label>
+            <input type="text" wire:model="tags" placeholder="sleep, kids, relax" class="input input-bordered" />
+            <label class="label">
+                <span class="label-text-alt">Kommagetrennt. Beispiel: sleep, bedtime, calm</span>
+            </label>
+            @error('tags')
+                <label class="label">
+                    <span class="label-text-alt text-error">{{ $message }}</span>
+                </label>
+            @enderror
+        </div>
+
         <!-- Upload Audio Files Section -->
         <div class="bg-base-200 p-4 rounded-lg mb-6">
             <h3 class="text-xl font-bold mb-4">Upload Audio Files</h3>

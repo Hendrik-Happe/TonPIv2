@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\RemoteControl;
 use App\Models\Playlist;
+use App\Models\Tag;
 use App\Models\Track;
 use App\Models\User;
 use App\Services\PlayerManager;
@@ -127,5 +128,25 @@ class RemoteControlTest extends TestCase
             ->set('search', 'Aardvark')
             ->assertSee('Aardvark Playlist')
             ->assertDontSee('Zulu Playlist');
+    }
+
+    public function test_remote_control_can_filter_playlists_by_tag(): void
+    {
+        $user = User::factory()->create();
+
+        $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        $kidsTag = Tag::factory()->create(['name' => 'kids', 'slug' => 'kids']);
+
+        $sleepPlaylist = Playlist::factory()->create(['name' => 'Sleep Remote']);
+        $kidsPlaylist = Playlist::factory()->create(['name' => 'Kids Remote']);
+
+        $sleepPlaylist->tags()->attach($sleepTag->id);
+        $kidsPlaylist->tags()->attach($kidsTag->id);
+
+        Livewire::actingAs($user)
+            ->test(RemoteControl::class)
+            ->set('tagFilter', (string) $sleepTag->id)
+            ->assertSee('Sleep Remote')
+            ->assertDontSee('Kids Remote');
     }
 }

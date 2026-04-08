@@ -9,18 +9,25 @@
         </a>
     </div>
 
-    <div class="mb-6">
-        <label class="input input-bordered w-full">
+    <div class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <label class="input input-bordered md:col-span-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
                 type="text"
                 class="grow"
-                placeholder="{{ __('Search playlists or RFID...') }}"
+                placeholder="{{ __('Search playlists, RFID or tags...') }}"
                 wire:model.live.debounce.300ms="search"
             />
         </label>
+
+        <select class="select select-bordered w-full" wire:model.live="tagFilter">
+            <option value="">{{ __('All tags') }}</option>
+            @foreach($this->availableTags as $tag)
+                <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+            @endforeach
+        </select>
     </div>
 
     @if (session('message'))
@@ -79,17 +86,24 @@
                                 <p class="text-xs mt-1 opacity-70">
                                     {{ __('RFID') }}: {{ $playlist->rfid_uid ?: __('not linked') }}
                                 </p>
+                                @if($playlist->tags->isNotEmpty())
+                                    <div class="mt-2 flex flex-wrap gap-1">
+                                        @foreach($playlist->tags as $tag)
+                                            <span class="badge badge-outline badge-sm">{{ $tag->name }}</span>
+                                        @endforeach
+                                    </div>
+                                @endif
                             </div>
                             
-                            <div class="dropdown dropdown-end">
-                                <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle">
+                            <div class="dropdown dropdown-end self-center">
+                                <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle place-items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
                                     </svg>
                                 </div>
                                 <ul tabindex="0" class="dropdown-content menu bg-base-100 rounded-box z-[1] w-52 p-2 shadow border border-base-300">
                                     <li>
-                                        <a href="/playlists/{{ $playlist->id }}/edit" wire:navigate>
+                                        <a href="/playlists/{{ $playlist->id }}/edit" wire:navigate class="flex items-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                             </svg>
@@ -97,7 +111,7 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <button wire:click="deletePlaylist({{ $playlist->id }})" class="text-error">
+                                        <button wire:click="deletePlaylist({{ $playlist->id }})" class="text-error flex items-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                             </svg>

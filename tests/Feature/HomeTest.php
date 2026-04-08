@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Home;
 use App\Models\Playlist;
+use App\Models\Tag;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -51,5 +52,22 @@ class HomeTest extends TestCase
             ->set('search', 'Zulu')
             ->assertSee('Zulu Home')
             ->assertDontSee('Alpha Home');
+    }
+
+    public function test_home_can_filter_playlists_by_tag(): void
+    {
+        $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        $kidsTag = Tag::factory()->create(['name' => 'kids', 'slug' => 'kids']);
+
+        $sleepPlaylist = Playlist::factory()->create(['name' => 'Sleep Home']);
+        $kidsPlaylist = Playlist::factory()->create(['name' => 'Kids Home']);
+
+        $sleepPlaylist->tags()->attach($sleepTag->id);
+        $kidsPlaylist->tags()->attach($kidsTag->id);
+
+        Livewire::test(Home::class)
+            ->set('tagFilter', (string) $sleepTag->id)
+            ->assertSee('Sleep Home')
+            ->assertDontSee('Kids Home');
     }
 }

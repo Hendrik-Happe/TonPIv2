@@ -3,6 +3,7 @@
 namespace App\Livewire\Playlists;
 
 use App\Models\Playlist;
+use App\Models\Tag;
 use App\Services\RfidReader;
 use App\Services\RfidTagNormalizer;
 use Livewire\Attributes\Computed;
@@ -20,7 +21,14 @@ class Index extends Component
 
     public string $search = '';
 
+    public string $tagFilter = '';
+
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingTagFilter(): void
     {
         $this->resetPage();
     }
@@ -29,15 +37,29 @@ class Index extends Component
     public function playlists()
     {
         return Playlist::query()
-            ->with('tracks')
+            ->with(['tracks', 'tags'])
             ->when($this->search !== '', function ($query): void {
                 $query->where(function ($subQuery): void {
                     $subQuery->where('name', 'like', '%'.$this->search.'%')
-                        ->orWhere('rfid_uid', 'like', '%'.$this->search.'%');
+                        ->orWhere('rfid_uid', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('tags', function ($tagsQuery): void {
+                            $tagsQuery->where('name', 'like', '%'.$this->search.'%');
+                        });
+                });
+            })
+            ->when($this->tagFilter !== '', function ($query): void {
+                $query->whereHas('tags', function ($tagsQuery): void {
+                    $tagsQuery->whereKey((int) $this->tagFilter);
                 });
             })
             ->latest()
             ->paginate(12);
+    }
+
+    #[Computed]
+    public function availableTags()
+    {
+        return Tag::query()->orderBy('name')->get();
     }
 
     public function deletePlaylist(int $playlistId): void

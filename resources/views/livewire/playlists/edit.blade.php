@@ -92,6 +92,22 @@
             @endif
         </div>
 
+        <div>
+            <label class="input">
+                <span class="label">{{ __('Tags') }}</span>
+                <input
+                    type="text"
+                    wire:model="tags"
+                    placeholder="sleep, kids, relax"
+                    class="grow"
+                >
+            </label>
+            <p class="text-base-content/60 text-sm mt-2">{{ __('Kommagetrennt. Beispiel: sleep, bedtime, calm') }}</p>
+            @error('tags')
+                <p class="text-error text-sm mt-1">{{ $message }}</p>
+            @enderror
+        </div>
+
         <!-- File Upload -->
         <div>
             <label class="block mb-2 font-medium">{{ __('Add New Tracks') }}</label>

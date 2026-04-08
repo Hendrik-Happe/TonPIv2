@@ -3,10 +3,12 @@
 namespace App\Livewire\Playlists;
 
 use App\Models\Playlist;
+use App\Models\Tag;
 use App\Models\Track;
 use App\Services\RfidReader;
 use App\Services\RfidTagNormalizer;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -26,6 +28,9 @@ class Edit extends Component
     #[Validate('nullable|integer|min:0|max:100')]
     public int|string|null $volumeProfile = null;
 
+    #[Validate('nullable|string|max:500')]
+    public string $tags = '';
+
     public ?string $rfidReadFeedback = null;
 
     public array $tracks = [];
@@ -42,6 +47,7 @@ class Edit extends Component
         $this->name = $playlist->name;
         $this->rfidUid = $playlist->rfid_uid ?? '';
         $this->volumeProfile = $playlist->volume_profile;
+        $this->tags = $playlist->tags()->orderBy('name')->pluck('name')->implode(', ');
 
         // Load existing tracks
         foreach ($playlist->tracks as $track) {
@@ -150,6 +156,7 @@ class Edit extends Component
             'name' => 'required|string|max:255',
             'rfidUid' => 'nullable|string|max:255|unique:playlists,rfid_uid,'.$this->playlist->id,
             'volumeProfile' => 'nullable|integer|min:0|max:100',
+            'tags' => 'nullable|string|max:500',
             'coverImage' => 'nullable|image|max:5120',
             'tracks' => 'required|array|min:1',
         ]);
@@ -175,6 +182,8 @@ class Edit extends Component
             'rfid_uid' => app(RfidTagNormalizer::class)->normalize($this->rfidUid),
             'volume_profile' => $this->normalizeVolumeProfile(),
         ]);
+
+        $this->syncPlaylistTags($this->playlist);
 
         // Get existing track file paths before deletion
         $existingTracks = $this->playlist->tracks->keyBy('id');
@@ -247,6 +256,32 @@ class Edit extends Component
         }
 
         return (int) $this->volumeProfile;
+    }
+
+    private function syncPlaylistTags(Playlist $playlist): void
+    {
+        $tagNames = collect(explode(',', $this->tags))
+            ->map(fn (string $name): string => trim($name))
+            ->filter(fn (string $name): bool => $name !== '')
+            ->unique(fn (string $name): string => Str::lower($name))
+            ->values();
+
+        $tagIds = $tagNames->map(function (string $name): int {
+            $slug = Str::slug($name);
+
+            if ($slug === '') {
+                $slug = 'tag-'.substr(md5($name), 0, 10);
+            }
+
+            $tag = Tag::firstOrCreate(
+                ['slug' => $slug],
+                ['name' => $name],
+            );
+
+            return $tag->id;
+        });
+
+        $playlist->tags()->sync($tagIds->all());
     }
 
     public function render()

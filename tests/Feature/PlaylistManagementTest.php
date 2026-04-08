@@ -6,6 +6,7 @@ use App\Livewire\Playlists\Create;
 use App\Livewire\Playlists\Edit;
 use App\Livewire\Playlists\Index;
 use App\Models\Playlist;
+use App\Models\Tag;
 use App\Models\Track;
 use App\Models\User;
 use App\Services\RfidReader;
@@ -236,6 +237,26 @@ class PlaylistManagementTest extends TestCase
 
         $this->assertNotNull($playlist->cover_path);
         Storage::disk('public')->assertExists($playlist->cover_path);
+    }
+
+    public function test_can_create_playlist_with_tags(): void
+    {
+        $audio = UploadedFile::fake()->create('track-1.mp3', 1024, 'audio/mpeg');
+
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('name', 'Tagged Playlist')
+            ->set('tags', 'sleep, Kids , bedtime, sleep')
+            ->set('uploadedFiles', [$audio])
+            ->call('save')
+            ->assertRedirect('/playlists');
+
+        $playlist = Playlist::where('name', 'Tagged Playlist')->firstOrFail();
+
+        $this->assertDatabaseHas('tags', ['slug' => 'sleep', 'name' => 'sleep']);
+        $this->assertDatabaseHas('tags', ['slug' => 'kids', 'name' => 'Kids']);
+        $this->assertDatabaseHas('tags', ['slug' => 'bedtime', 'name' => 'bedtime']);
+        $this->assertCount(3, $playlist->tags);
     }
 
     public function test_reordered_tracks_are_saved_in_correct_order(): void
@@ -640,6 +661,44 @@ class PlaylistManagementTest extends TestCase
         $this->assertNotSame($existingCoverPath, $updatedPlaylist->cover_path);
         Storage::disk('public')->assertMissing($existingCoverPath);
         Storage::disk('public')->assertExists($updatedPlaylist->cover_path);
+    }
+
+    public function test_can_update_playlist_tags(): void
+    {
+        $playlist = Playlist::factory()->create(['name' => 'Tag Edit Playlist']);
+        $playlist->tags()->attach(Tag::factory()->create(['name' => 'old', 'slug' => 'old'])->id);
+
+        Track::factory()->create([
+            'playlist_id' => $playlist->id,
+            'track_number' => 1,
+        ]);
+
+        Livewire::actingAs($this->user)
+            ->test(Edit::class, ['playlist' => $playlist])
+            ->set('tags', 'new, focus')
+            ->call('save')
+            ->assertRedirect('/');
+
+        $updated = $playlist->fresh();
+        $this->assertSame(['focus', 'new'], $updated->tags()->orderBy('slug')->pluck('slug')->all());
+    }
+
+    public function test_playlists_index_can_filter_by_tag(): void
+    {
+        $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        $kidsTag = Tag::factory()->create(['name' => 'kids', 'slug' => 'kids']);
+
+        $sleepPlaylist = Playlist::factory()->create(['name' => 'Sleep Playlist']);
+        $kidsPlaylist = Playlist::factory()->create(['name' => 'Kids Playlist']);
+
+        $sleepPlaylist->tags()->attach($sleepTag->id);
+        $kidsPlaylist->tags()->attach($kidsTag->id);
+
+        Livewire::actingAs($this->user)
+            ->test(Index::class)
+            ->set('tagFilter', (string) $sleepTag->id)
+            ->assertSee('Sleep Playlist')
+            ->assertDontSee('Kids Playlist');
     }
 
     public function test_can_add_new_tracks_to_existing_playlist(): void

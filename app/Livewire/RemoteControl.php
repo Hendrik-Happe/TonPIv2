@@ -8,6 +8,7 @@ use App\Actions\Player\SetVolume;
 use App\Actions\Player\SkipTrack;
 use App\Actions\Player\TogglePlayPause;
 use App\Models\Playlist;
+use App\Models\Tag;
 use App\Services\PlayerManager;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Title;
@@ -25,7 +26,14 @@ class RemoteControl extends Component
 
     public string $search = '';
 
+    public string $tagFilter = '';
+
     public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingTagFilter(): void
     {
         $this->resetPage();
     }
@@ -53,12 +61,29 @@ class RemoteControl extends Component
     public function playlists()
     {
         return Playlist::query()
+            ->with('tags')
             ->withCount('tracks')
             ->when($this->search !== '', function ($query): void {
-                $query->where('name', 'like', '%'.$this->search.'%');
+                $query->where(function ($subQuery): void {
+                    $subQuery->where('name', 'like', '%'.$this->search.'%')
+                        ->orWhereHas('tags', function ($tagsQuery): void {
+                            $tagsQuery->where('name', 'like', '%'.$this->search.'%');
+                        });
+                });
+            })
+            ->when($this->tagFilter !== '', function ($query): void {
+                $query->whereHas('tags', function ($tagsQuery): void {
+                    $tagsQuery->whereKey((int) $this->tagFilter);
+                });
             })
             ->orderBy('name')
             ->paginate(12);
+    }
+
+    #[Computed]
+    public function availableTags()
+    {
+        return Tag::query()->orderBy('name')->get();
     }
 
     #[Computed]

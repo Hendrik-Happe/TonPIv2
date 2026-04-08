@@ -29,4 +29,9 @@ class Playlist extends Model
     {
         return $this->hasMany(Track::class)->orderBy('track_number');
     }
+
+    public function tags()
+    {
+        return $this->belongsToMany(Tag::class);
+    }
 }

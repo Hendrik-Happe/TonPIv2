@@ -27,18 +27,25 @@
         @endauth
     </div>
 
-    <div class="mb-6">
-        <label class="input input-bordered w-full">
+    <div class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
+        <label class="input input-bordered md:col-span-2">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
                 type="text"
                 class="grow"
-                placeholder="{{ __('Search playlists...') }}"
+                placeholder="{{ __('Search playlists or tags...') }}"
                 wire:model.live.debounce.300ms="search"
             />
         </label>
+
+        <select class="select select-bordered w-full" wire:model.live="tagFilter">
+            <option value="">{{ __('All tags') }}</option>
+            @foreach($this->availableTags as $tag)
+                <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+            @endforeach
+        </select>
     </div>
 
     @if($this->playlists->isEmpty())
@@ -74,6 +81,13 @@
                         <p class="text-sm opacity-60">
                             {{ $playlist->tracks_count }} {{ __('tracks') }}
                         </p>
+                        @if($playlist->tags->isNotEmpty())
+                            <div class="mt-2 flex flex-wrap gap-1">
+                                @foreach($playlist->tags as $tag)
+                                    <span class="badge badge-outline badge-sm">{{ $tag->name }}</span>
+                                @endforeach
+                            </div>
+                        @endif
                         
                         <div class="card-actions justify-end mt-4 gap-2">
                             <button 

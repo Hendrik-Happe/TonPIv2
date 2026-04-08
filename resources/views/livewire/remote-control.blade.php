@@ -86,17 +86,26 @@
     <div class="mt-6">
         <h2 class="mb-3 text-lg font-semibold">{{ __('Playlists') }}</h2>
 
-        <label class="input input-bordered mb-3 w-full">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-                type="text"
-                class="grow"
-                placeholder="{{ __('Search playlists...') }}"
-                wire:model.live.debounce.300ms="search"
-            />
-        </label>
+        <div class="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+            <label class="input input-bordered md:col-span-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-70" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35m1.85-5.15a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                    type="text"
+                    class="grow"
+                    placeholder="{{ __('Search playlists or tags...') }}"
+                    wire:model.live.debounce.300ms="search"
+                />
+            </label>
+
+            <select class="select select-bordered w-full" wire:model.live="tagFilter">
+                <option value="">{{ __('All tags') }}</option>
+                @foreach($this->availableTags as $tag)
+                    <option value="{{ $tag->id }}">{{ $tag->name }}</option>
+                @endforeach
+            </select>
+        </div>
 
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             @foreach($this->playlists as $playlist)
@@ -104,11 +113,20 @@
                     wire:click="playPlaylist({{ $playlist->id }})"
                     class="btn h-auto min-h-0 justify-between rounded-box border-base-300 px-4 py-4 text-left normal-case {{ $this->selectedPlaylistId === $playlist->id ? 'btn-primary' : 'btn-outline' }}"
                 >
-                    <span class="flex items-center gap-3 truncate">
-                        @if($playlist->cover_path)
-                            <img src="{{ asset('storage/'.$playlist->cover_path) }}" alt="{{ $playlist->name }} cover" class="h-10 w-10 rounded-box bg-base-300/30 object-contain p-0.5" />
+                    <span class="min-w-0 flex-1">
+                        <span class="flex items-center gap-3 truncate">
+                            @if($playlist->cover_path)
+                                <img src="{{ asset('storage/'.$playlist->cover_path) }}" alt="{{ $playlist->name }} cover" class="h-10 w-10 rounded-box bg-base-300/30 object-contain p-0.5" />
+                            @endif
+                            <span class="truncate">{{ $playlist->name }}</span>
+                        </span>
+                        @if($playlist->tags->isNotEmpty())
+                            <span class="mt-1 flex flex-wrap gap-1">
+                                @foreach($playlist->tags->take(3) as $tag)
+                                    <span class="badge badge-outline badge-xs">{{ $tag->name }}</span>
+                                @endforeach
+                            </span>
                         @endif
-                        <span class="truncate">{{ $playlist->name }}</span>
                     </span>
                     <span class="text-xs opacity-80">{{ $playlist->tracks_count }} {{ __('tracks') }}</span>
                 </button>
