@@ -31,10 +31,13 @@ class PlaylistManagementTest extends TestCase
 
     public function test_authenticated_user_can_view_playlists_index(): void
     {
+        $playlist = Playlist::factory()->create();
+
         $response = $this->actingAs($this->user)->get('/playlists');
 
         $response->assertStatus(200);
         $response->assertSeeLivewire(Index::class);
+        $response->assertSee('/playlists/'.$playlist->id.'/edit', false);
     }
 
     public function test_playlists_index_supports_search_and_pagination(): void
