@@ -6,6 +6,8 @@ cd "$PROJECT_DIR"
 
 # Speichere den ursprünglichen User für später
 ORIGINAL_USER="${SUDO_USER:-$(whoami)}"
+SERVICE_USER="${TONPI_SERVICE_USER:-tonpi}"
+SERVICE_GROUP="${TONPI_SERVICE_GROUP:-$SERVICE_USER}"
 IS_ROOT=false
 if [[ "${EUID}" -eq 0 ]]; then
   IS_ROOT=true
@@ -18,17 +20,17 @@ else
 fi
 
 if [[ "$IS_ROOT" == true ]]; then
-  echo "[1/14] Updating package lists..."
+  echo "[1/12] Updating package lists..."
   apt-get update
 
-  echo "[2/14] Installing bootstrap dependencies..."
+  echo "[2/12] Installing bootstrap dependencies..."
   if ! apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 php8.4-fpm mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert; then
     echo "⚠️  Initial package install failed. Attempting to fix broken packages..."
     apt-get install -f -y
     apt-get install -y git curl unzip sqlite3 composer php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip apache2 ssl-cert
   fi
 
-  echo "[3/14] Installing Node.js 22 LTS..."
+  echo "[3/12] Installing Node.js 22 LTS..."
   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get update
   if ! apt-get install -y nodejs; then
@@ -43,87 +45,73 @@ if [[ "$IS_ROOT" == true ]]; then
     exit 1
   fi
 
-  echo "[4/14] Installing Python GPIO dependencies..."
-  sudo -u "$ORIGINAL_USER" pip3 install --break-system-packages RPi.GPIO mfrc522
+  echo "[4/12] Creating dedicated service user..."
+  if ! getent group "$SERVICE_GROUP" >/dev/null 2>&1; then
+    groupadd --system "$SERVICE_GROUP"
+  fi
+  if ! id -u "$SERVICE_USER" >/dev/null 2>&1; then
+    useradd --system --gid "$SERVICE_GROUP" --create-home --home-dir /var/lib/tonpi --shell /usr/sbin/nologin "$SERVICE_USER"
+  fi
 
-  echo "[5/14] Installing PHP dependencies..."
-  sudo -u "$ORIGINAL_USER" composer install --no-interaction --prefer-dist --optimize-autoloader
-
-  echo "[6/14] Building frontend assets..."
-  sudo -u "$ORIGINAL_USER" npm install
-  sudo -u "$ORIGINAL_USER" npm run build
-
-  echo "[7/14] Starting PHP-FPM..."
+  echo "[5/12] Starting PHP-FPM..."
   systemctl enable php8.4-fpm
   systemctl start php8.4-fpm
 
-  echo "[8/14] Fixing initial file permissions..."
-  chown -R "$ORIGINAL_USER:$ORIGINAL_USER" .
+  echo "[6/12] Fixing initial file permissions..."
+  chown -R "$ORIGINAL_USER:$ORIGINAL_USER" "$PROJECT_DIR"
 
-  echo "[9/14] Running application installer as $ORIGINAL_USER..."
-  sudo -u "$ORIGINAL_USER" php artisan app:install --skip-system-deps
+  echo "[7/12] Running application installer as $ORIGINAL_USER..."
+  sudo -u "$ORIGINAL_USER" TONPI_SERVICE_USER="$SERVICE_USER" TONPI_SERVICE_GROUP="$SERVICE_GROUP" php artisan app:install --skip-system-deps
 
-  echo "[10/14] Installing systemd services..."
-  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g; s|{{PHP_PATH}}|$(which php)|g" rfid-reader.service | tee /etc/systemd/system/rfid-reader.service > /dev/null
-  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g; s|{{PHP_PATH}}|$(which php)|g" gpio-control.service | tee /etc/systemd/system/gpio-control.service > /dev/null
-  sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g; s|{{SERVICE_USER}}|$ORIGINAL_USER|g; s|{{PHP_PATH}}|$(which php)|g" queue-worker.service | tee /etc/systemd/system/queue-worker.service > /dev/null
-  systemctl daemon-reload
-  systemctl enable rfid-reader.service
-  systemctl enable gpio-control.service
-  systemctl enable queue-worker.service
-  systemctl start rfid-reader.service
-  systemctl start gpio-control.service
-  systemctl start queue-worker.service
-
-  echo "[11/14] Configuring Apache direct access..."
+  echo "[8/12] Configuring Apache direct access..."
   sed "s|{{PROJECT_DIR}}|$PROJECT_DIR|g" tonpi-apache.conf | tee /etc/apache2/sites-available/tonpi-apache.conf > /dev/null
   a2enmod proxy_fcgi
   a2ensite tonpi-apache.conf
   systemctl reload apache2
 
-  echo "[12/14] Setting up user and group permissions..."
+  echo "[9/12] Setting up user and group permissions..."
   usermod -a -G audio www-data
-  usermod -a -G spi,gpio,audio "$ORIGINAL_USER"
+  usermod -a -G spi,gpio,audio "$SERVICE_USER"
+  usermod -a -G "$SERVICE_GROUP" "$ORIGINAL_USER"
   usermod -a -G www-data "$ORIGINAL_USER"
+  usermod -a -G www-data "$SERVICE_USER"
 
-  echo "[13/14] Setting final file permissions..."
-  chown -R "$ORIGINAL_USER:www-data" .
-  find . -type d -exec chmod 755 {} \;
-  find . -type f -exec chmod 644 {} \;
-  chmod -R 775 storage bootstrap/cache
+  echo "[10/12] Setting final file permissions..."
+  chown -R "$SERVICE_USER:www-data" "$PROJECT_DIR"
+  find "$PROJECT_DIR" -type d -exec chmod 755 {} \;
+  find "$PROJECT_DIR" -type f -exec chmod 644 {} \;
+  chmod -R 775 "$PROJECT_DIR"/storage "$PROJECT_DIR"/bootstrap/cache
   mkdir -p database
-  chown -R "$ORIGINAL_USER:www-data" database
+  chown -R "$SERVICE_USER:www-data" database
   chmod 775 database
   touch database/database.sqlite
-  chown "$ORIGINAL_USER:www-data" database/database.sqlite
+  chown "$SERVICE_USER:www-data" database/database.sqlite
   chmod 664 database/database.sqlite
 
-  echo "[14/14] Restarting services..."
-  systemctl restart php8.4-fpm queue-worker rfid-reader gpio-control
+  echo "[11/12] Restarting services..."
+  systemctl restart php8.4-fpm tonpi-player-queue tonpi-scheduler tonpi-rfid-listener tonpi-gpio-controls tonpi-web || true
+
+  echo "[12/12] Showing service status..."
 
   echo ""
   echo "✅ Installation complete!"
   echo ""
   echo "📋 Running services:"
   echo ""
-  systemctl status queue-worker.service --no-pager || true
+  systemctl status tonpi-player-queue.service --no-pager || true
+  systemctl status tonpi-scheduler.service --no-pager || true
   systemctl status php8.4-fpm --no-pager || true
   echo ""
   echo "⚠️  To check service logs:"
-  echo "   sudo journalctl -u queue-worker -f"
+  echo "   sudo journalctl -u tonpi-player-queue -f"
+  echo "   sudo journalctl -u tonpi-scheduler -f"
   echo "   sudo journalctl -u php8.4-fpm -f"
-  echo "   sudo journalctl -u rfid-reader -f"
-  echo "   sudo journalctl -u gpio-control -f"
+  echo "   sudo journalctl -u tonpi-rfid-listener -f"
+  echo "   sudo journalctl -u tonpi-gpio-controls -f"
   echo ""
 
 else
-  echo "[1/4] Installing PHP dependencies..."
-  composer install --no-interaction --prefer-dist --optimize-autoloader
-
-  echo "[2/4] Installing Python GPIO dependencies..."
-  pip3 install --break-system-packages RPi.GPIO mfrc522
-
-  echo "[3/4] Fixing file permissions..."
+  echo "[1/2] Fixing file permissions..."
   mkdir -p database
   touch database/database.sqlite
   chmod 664 database/database.sqlite
@@ -131,7 +119,8 @@ else
   mkdir -p bootstrap/cache
   chmod -R 775 storage bootstrap/cache
 
-  echo "[4/4] Running application installer..."
+  echo "[2/2] Running application installer..."
+  echo "ℹ️  Tip: Run with sudo to create a dedicated service user automatically."
   php artisan app:install --skip-system-deps
 fi
 

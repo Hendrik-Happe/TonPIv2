@@ -4,10 +4,13 @@ namespace Tests\Feature\Feature\Console;
 
 use App\Console\Commands\Install;
 use App\Services\ApplicationInstaller;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class InstallCommandTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_install_command_prompts_for_user_data_and_runs_the_installer(): void
     {
         $installer = $this->mock(ApplicationInstaller::class);

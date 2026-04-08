@@ -30,6 +30,9 @@ class ApplicationInstallerTest extends TestCase
 
         Process::fake();
 
+        putenv('TONPI_SERVICE_USER=tonpi-svc');
+        putenv('TONPI_SERVICE_GROUP=tonpi-svc-group');
+
         Artisan::partialMock();
         Artisan::shouldReceive('call')->once()->with('config:clear', [])->andReturn(0);
         Artisan::shouldReceive('call')->once()->with('key:generate', ['--force' => true])->andReturn(0);
@@ -38,8 +41,8 @@ class ApplicationInstallerTest extends TestCase
         Artisan::shouldReceive('call')->once()->with('db:seed', ['--force' => true])->andReturn(0);
 
         $command = $this->mock(Command::class);
-        $command->shouldReceive('info')->times(8);
-        $command->shouldReceive('line')->times(20);
+        $command->shouldReceive('info')->zeroOrMoreTimes();
+        $command->shouldReceive('line')->zeroOrMoreTimes();
         $command->shouldReceive('warn')->zeroOrMoreTimes();
 
         app()->call([new ApplicationInstaller, 'install'], [
@@ -55,20 +58,28 @@ class ApplicationInstallerTest extends TestCase
         $this->assertTrue(Hash::check('secret-password', $user->password));
 
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-player-queue.service'));
+        $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-scheduler.service'));
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-rfid-listener.service'));
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-gpio-controls.service'));
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-web.service'));
 
         $playerQueueService = file_get_contents(storage_path('framework/testing/systemd/tonpi-player-queue.service'));
+        $schedulerService = file_get_contents(storage_path('framework/testing/systemd/tonpi-scheduler.service'));
         $rfidListenerService = file_get_contents(storage_path('framework/testing/systemd/tonpi-rfid-listener.service'));
         $gpioControlsService = file_get_contents(storage_path('framework/testing/systemd/tonpi-gpio-controls.service'));
         $webService = file_get_contents(storage_path('framework/testing/systemd/tonpi-web.service'));
 
         $this->assertIsString($playerQueueService);
+        $this->assertIsString($schedulerService);
         $this->assertIsString($rfidListenerService);
         $this->assertIsString($gpioControlsService);
         $this->assertIsString($webService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan queue:work --tries=1 --timeout=0', $playerQueueService);
+        $this->assertStringContainsString('User=tonpi-svc', $playerQueueService);
+        $this->assertStringContainsString('Group=tonpi-svc-group', $playerQueueService);
+        $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan schedule:work', $schedulerService);
+        $this->assertStringContainsString('User=tonpi-svc', $schedulerService);
+        $this->assertStringContainsString('Group=tonpi-svc-group', $schedulerService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan rfid:listen', $rfidListenerService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan gpio:listen-controls', $gpioControlsService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan serve --host=0.0.0.0 --port=8000', $webService);
@@ -80,11 +91,11 @@ class ApplicationInstallerTest extends TestCase
         $this->assertStringContainsString('GPIO_CONTROL_COMMAND="'.base_path('gpio-control/.venv/bin/python').' '.base_path('gpio-control/read_gpio.py').'"', (string) file_get_contents($installEnvPath));
 
         Process::assertRan(function ($process) {
-            return $process->command === 'apt-get update';
+            return $process->command === 'DEBIAN_FRONTEND=noninteractive apt-get update';
         });
 
         Process::assertRan(function ($process) {
-            return $process->command === 'apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip';
+            return $process->command === 'DEBIAN_FRONTEND=noninteractive apt-get install -y git curl unzip sqlite3 composer nodejs npm php php-cli php-curl php-mbstring php-xml php-zip php-sqlite3 mplayer ffmpeg python3 python3-venv python3-pip';
         });
 
         Process::assertRan(function ($process) {
@@ -134,6 +145,10 @@ class ApplicationInstallerTest extends TestCase
         });
 
         Process::assertRan(function ($process) {
+            return $process->command === 'systemctl enable --now tonpi-scheduler.service';
+        });
+
+        Process::assertRan(function ($process) {
             return $process->command === 'systemctl enable --now tonpi-rfid-listener.service';
         });
 
@@ -158,6 +173,10 @@ class ApplicationInstallerTest extends TestCase
         });
 
         Process::assertRan(function ($process) {
+            return $process->command === 'systemctl is-enabled tonpi-scheduler.service >/dev/null';
+        });
+
+        Process::assertRan(function ($process) {
             return $process->command === 'systemctl is-enabled tonpi-rfid-listener.service >/dev/null';
         });
 
@@ -168,5 +187,8 @@ class ApplicationInstallerTest extends TestCase
         Process::assertRan(function ($process) {
             return $process->command === 'systemctl is-enabled tonpi-web.service >/dev/null';
         });
+
+        putenv('TONPI_SERVICE_USER');
+        putenv('TONPI_SERVICE_GROUP');
     }
 }

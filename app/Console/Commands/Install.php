@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\User;
 use App\Services\ApplicationInstaller;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
@@ -26,61 +27,13 @@ class Install extends Command
             return self::FAILURE;
         }
 
-        // Check if users already exist
-        $userCount = \App\Models\User::count();
-        if ($userCount > 0) {
-            if ($skipUserCreation) {
-                $this->info('Skipping user creation - users already exist.');
-                $name = null;
-                $password = null;
-            } else {
-                $this->warn("Found {$userCount} existing user(s). Use --skip-user-creation to skip user creation.");
-                if (! $this->confirm('Do you want to create an additional user?', false)) {
-                    $this->info('Skipping user creation.');
-                    $name = null;
-                    $password = null;
-                } else {
-                    $name = trim((string) $this->ask('Name for the additional user', 'Administrator'));
-                    $password = (string) $this->secret('Password for the additional user');
-                    $passwordConfirmation = (string) $this->secret('Confirm the password');
+        $credentials = $this->resolveInstallUserCredentials($skipUserCreation);
 
-                    if ($name === '') {
-                        $this->error('The user name is required.');
-                        return self::FAILURE;
-                    }
-
-                    if ($password === '') {
-                        $this->error('The password is required.');
-                        return self::FAILURE;
-                    }
-
-                    if ($password !== $passwordConfirmation) {
-                        $this->error('The passwords do not match.');
-                        return self::FAILURE;
-                    }
-                }
-            }
-        } else {
-            // No users exist, create initial user
-            $name = trim((string) $this->ask('Name for the initial user', 'Administrator'));
-            $password = (string) $this->secret('Password for the initial user');
-            $passwordConfirmation = (string) $this->secret('Confirm the password');
-
-            if ($name === '') {
-                $this->error('The user name is required.');
-                return self::FAILURE;
-            }
-
-            if ($password === '') {
-                $this->error('The password is required.');
-                return self::FAILURE;
-            }
-
-            if ($password !== $passwordConfirmation) {
-                $this->error('The passwords do not match.');
-                return self::FAILURE;
-            }
+        if ($credentials === false) {
+            return self::FAILURE;
         }
+
+        [$name, $password] = $credentials;
 
         $this->info('Installing the application...');
 
@@ -95,5 +48,63 @@ class Install extends Command
         $this->info('Installation complete!');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @return array{0: ?string, 1: ?string}|false
+     */
+    private function resolveInstallUserCredentials(bool $skipUserCreation): array|false
+    {
+        $userCount = User::count();
+
+        if ($userCount > 0) {
+            if ($skipUserCreation) {
+                $this->info('Skipping user creation - users already exist.');
+
+                return [null, null];
+            }
+
+            $this->warn("Found {$userCount} existing user(s). Use --skip-user-creation to skip user creation.");
+
+            if (! $this->confirm('Do you want to create an additional user?', false)) {
+                $this->info('Skipping user creation.');
+
+                return [null, null];
+            }
+
+            return $this->promptForUserCredentials('additional user');
+        }
+
+        return $this->promptForUserCredentials('initial user');
+    }
+
+    /**
+     * @return array{0: string, 1: string}|false
+     */
+    private function promptForUserCredentials(string $label): array|false
+    {
+        $name = trim((string) $this->ask("Name for the {$label}", 'Administrator'));
+        $password = (string) $this->secret("Password for the {$label}");
+        $passwordConfirmation = (string) $this->secret('Confirm the password');
+
+        if ($name === '') {
+            $this->error('The user name is required.');
+
+            return false;
+        }
+
+        if ($password === '') {
+            $this->error('The password is required.');
+
+            return false;
+        }
+
+        if ($password !== $passwordConfirmation) {
+            $this->error('The passwords do not match.');
+
+            return false;
+        }
+
+        return [$name, $password];
     }
 }

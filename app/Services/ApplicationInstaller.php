@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Process;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class ApplicationInstaller
@@ -33,13 +34,16 @@ class ApplicationInstaller
         $this->initializeLaravel($command);
         $this->prepareRfidReaderEnvironment($command);
         $this->prepareGpioControlEnvironment($command);
-        
+
         if ($name !== null && $password !== null) {
             $this->createInitialUser($command, $name, $password);
         } else {
             $command->info('Skipping initial user creation.');
         }
-        
+
+        $this->runArtisanStep('db:seed', ['--force' => true]);
+        $this->createSystemdServices($command);
+
         $this->runPostInstallChecks($command);
     }
 
@@ -253,6 +257,10 @@ class ApplicationInstaller
                 'TonPI Player Queue Worker',
                 '/usr/bin/env php artisan queue:work --tries=1 --timeout=0'
             ),
+            'tonpi-scheduler.service' => $this->buildSystemdService(
+                'TonPI Laravel Scheduler',
+                '/usr/bin/env php artisan schedule:work'
+            ),
             'tonpi-rfid-listener.service' => $this->buildSystemdService(
                 'TonPI RFID Listener',
                 '/usr/bin/env php artisan rfid:listen'
@@ -273,6 +281,7 @@ class ApplicationInstaller
 
         $this->runProcessStep($command, 'Reloading systemd daemon', 'systemctl daemon-reload');
         $this->runProcessStep($command, 'Enabling player queue service', 'systemctl enable --now tonpi-player-queue.service');
+        $this->runProcessStep($command, 'Enabling scheduler service', 'systemctl enable --now tonpi-scheduler.service');
         $this->runProcessStep($command, 'Enabling RFID listener service', 'systemctl enable --now tonpi-rfid-listener.service');
         $this->runProcessStep($command, 'Enabling GPIO controls service', 'systemctl enable --now tonpi-gpio-controls.service');
         $this->runProcessStep($command, 'Enabling web service', 'systemctl enable --now tonpi-web.service');
@@ -284,6 +293,12 @@ class ApplicationInstaller
 
         $this->runProcessStep($command, 'Checking mplayer installation', 'command -v mplayer >/dev/null');
         $this->runProcessStep($command, 'Checking ffprobe installation', 'command -v ffprobe >/dev/null');
+
+        $this->runProcessStep($command, 'Checking queue service enabled', 'systemctl is-enabled tonpi-player-queue.service >/dev/null');
+        $this->runProcessStep($command, 'Checking scheduler service enabled', 'systemctl is-enabled tonpi-scheduler.service >/dev/null');
+        $this->runProcessStep($command, 'Checking RFID listener service enabled', 'systemctl is-enabled tonpi-rfid-listener.service >/dev/null');
+        $this->runProcessStep($command, 'Checking GPIO controls service enabled', 'systemctl is-enabled tonpi-gpio-controls.service >/dev/null');
+        $this->runProcessStep($command, 'Checking web service enabled', 'systemctl is-enabled tonpi-web.service >/dev/null');
 
         if (! file_exists('/dev/spidev0.0')) {
             $command->warn('SPI device /dev/spidev0.0 not found. Enable SPI before using RC522.');
@@ -371,5 +386,76 @@ class ApplicationInstaller
                 trim($result->errorOutput() ?: $result->output()),
             ));
         }
+    }
+
+    private function systemdServiceDirectory(): string
+    {
+        if (app()->runningUnitTests()) {
+            return storage_path('framework/testing/systemd');
+        }
+
+        return '/etc/systemd/system';
+    }
+
+    private function buildSystemdService(string $description, string $execStart): string
+    {
+        $user = $this->systemUser();
+        $group = $this->systemGroup($user);
+        $workingDirectory = base_path();
+
+        return implode("\n", [
+            '[Unit]',
+            sprintf('Description=%s', $description),
+            'After=network.target',
+            '',
+            '[Service]',
+            'Type=simple',
+            sprintf('User=%s', $user),
+            sprintf('Group=%s', $group),
+            sprintf('WorkingDirectory=%s', $workingDirectory),
+            sprintf('ExecStart=%s', $execStart),
+            'Restart=always',
+            'RestartSec=5',
+            '',
+            '[Install]',
+            'WantedBy=multi-user.target',
+            '',
+        ]);
+    }
+
+    private function systemUser(): string
+    {
+        $configuredServiceUser = trim((string) getenv('TONPI_SERVICE_USER'));
+
+        if ($configuredServiceUser !== '') {
+            return $configuredServiceUser;
+        }
+
+        if (app()->runningUnitTests()) {
+            return 'www-data';
+        }
+
+        $sudoUser = trim((string) getenv('SUDO_USER'));
+
+        if ($sudoUser !== '') {
+            return $sudoUser;
+        }
+
+        return Str::of((string) shell_exec('id -un'))->trim()->value() ?: 'www-data';
+    }
+
+    private function systemGroup(string $fallbackUser): string
+    {
+        $configuredServiceGroup = trim((string) getenv('TONPI_SERVICE_GROUP'));
+
+        if ($configuredServiceGroup !== '') {
+            return $configuredServiceGroup;
+        }
+
+        if (app()->runningUnitTests()) {
+            return 'www-data';
+        }
+
+        return $fallbackUser;
     }
 }
