@@ -233,4 +233,22 @@ class PlayerTest extends TestCase
             ->call('syncFromPlayerState')
             ->assertSet('volumePercentage', 58);
     }
+
+    public function test_player_component_shows_cover_of_active_playlist(): void
+    {
+        $user = User::factory()->create();
+
+        $playlist = Playlist::factory()
+            ->has(Track::factory()->count(1))
+            ->create([
+                'name' => 'Cover Active Playlist',
+                'cover_path' => 'playlist-covers/active-cover.jpg',
+            ]);
+
+        app(PlayerManager::class)->playPlaylist($playlist);
+
+        Livewire::actingAs($user)
+            ->test('player')
+            ->assertSee('storage/'.$playlist->cover_path, false);
+    }
 }

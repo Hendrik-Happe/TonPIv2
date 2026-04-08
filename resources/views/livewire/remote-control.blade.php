@@ -104,7 +104,12 @@
                     wire:click="playPlaylist({{ $playlist->id }})"
                     class="btn h-auto min-h-0 justify-between rounded-box border-base-300 px-4 py-4 text-left normal-case {{ $this->selectedPlaylistId === $playlist->id ? 'btn-primary' : 'btn-outline' }}"
                 >
-                    <span class="truncate">{{ $playlist->name }}</span>
+                    <span class="flex items-center gap-3 truncate">
+                        @if($playlist->cover_path)
+                            <img src="{{ asset('storage/'.$playlist->cover_path) }}" alt="{{ $playlist->name }} cover" class="h-10 w-10 rounded-box bg-base-300/30 object-contain p-0.5" />
+                        @endif
+                        <span class="truncate">{{ $playlist->name }}</span>
+                    </span>
                     <span class="text-xs opacity-80">{{ $playlist->tracks_count }} {{ __('tracks') }}</span>
                 </button>
             @endforeach

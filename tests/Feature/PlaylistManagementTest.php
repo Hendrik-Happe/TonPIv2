@@ -219,6 +219,25 @@ class PlaylistManagementTest extends TestCase
         ]);
     }
 
+    public function test_can_create_playlist_with_cover_image(): void
+    {
+        $audio = UploadedFile::fake()->create('track-1.mp3', 1024, 'audio/mpeg');
+        $cover = UploadedFile::fake()->image('cover.jpg', 400, 400);
+
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('name', 'Cover Playlist')
+            ->set('coverImage', $cover)
+            ->set('uploadedFiles', [$audio])
+            ->call('save')
+            ->assertRedirect('/playlists');
+
+        $playlist = Playlist::where('name', 'Cover Playlist')->firstOrFail();
+
+        $this->assertNotNull($playlist->cover_path);
+        Storage::disk('public')->assertExists($playlist->cover_path);
+    }
+
     public function test_reordered_tracks_are_saved_in_correct_order(): void
     {
         $files = [
@@ -591,6 +610,36 @@ class PlaylistManagementTest extends TestCase
             'id' => $playlist->id,
             'volume_profile' => 55,
         ]);
+    }
+
+    public function test_can_update_playlist_cover_image(): void
+    {
+        $existingCover = UploadedFile::fake()->image('existing-cover.jpg', 300, 300);
+        $existingCoverPath = $existingCover->store('playlist-covers', 'public');
+
+        $playlist = Playlist::factory()->create([
+            'name' => 'Cover Edit Playlist',
+            'cover_path' => $existingCoverPath,
+        ]);
+
+        Track::factory()->create([
+            'playlist_id' => $playlist->id,
+            'track_number' => 1,
+        ]);
+
+        $newCover = UploadedFile::fake()->image('new-cover.jpg', 600, 600);
+
+        Livewire::actingAs($this->user)
+            ->test(Edit::class, ['playlist' => $playlist])
+            ->set('coverImage', $newCover)
+            ->call('save')
+            ->assertRedirect('/');
+
+        $updatedPlaylist = $playlist->fresh();
+        $this->assertNotNull($updatedPlaylist->cover_path);
+        $this->assertNotSame($existingCoverPath, $updatedPlaylist->cover_path);
+        Storage::disk('public')->assertMissing($existingCoverPath);
+        Storage::disk('public')->assertExists($updatedPlaylist->cover_path);
     }
 
     public function test_can_add_new_tracks_to_existing_playlist(): void

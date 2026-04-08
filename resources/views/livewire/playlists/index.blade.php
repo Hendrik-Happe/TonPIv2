@@ -62,6 +62,11 @@
                     wire:key="playlist-{{ $playlist->id }}"
                     class="card bg-base-100 border border-base-300 shadow-sm hover:shadow-lg transition"
                 >
+                    @if($playlist->cover_path)
+                        <figure class="px-5 pt-5">
+                            <img src="{{ asset('storage/'.$playlist->cover_path) }}" alt="{{ $playlist->name }} cover" class="h-40 w-full rounded-box bg-base-300/30 object-contain p-1" />
+                        </figure>
+                    @endif
                     <div class="card-body p-5">
                         <div class="flex items-start justify-between mb-3">
                             <div class="flex-1">

@@ -71,6 +71,28 @@
             @enderror
         </div>
 
+        <div class="form-control mb-6">
+            <label class="label">
+                <span class="label-text">Playlist Cover</span>
+            </label>
+            <input
+                type="file"
+                wire:model="coverImage"
+                accept="image/*"
+                class="file-input file-input-bordered file-input-primary w-full"
+            />
+            @error('coverImage')
+                <label class="label">
+                    <span class="label-text-alt text-error">{{ $message }}</span>
+                </label>
+            @enderror
+            @if($coverImage)
+                <div class="mt-3">
+                    <img src="{{ $coverImage->temporaryUrl() }}" alt="Cover preview" class="h-32 w-32 rounded-box bg-base-300/30 object-contain p-1" />
+                </div>
+            @endif
+        </div>
+
         <!-- Upload Audio Files Section -->
         <div class="bg-base-200 p-4 rounded-lg mb-6">
             <h3 class="text-xl font-bold mb-4">Upload Audio Files</h3>

@@ -66,6 +66,32 @@
             @enderror
         </div>
 
+        <div>
+            <label class="block mb-2 font-medium">{{ __('Playlist Cover') }}</label>
+            <input
+                type="file"
+                wire:model="coverImage"
+                class="file-input file-input-primary w-full"
+                accept="image/*"
+            >
+            @error('coverImage')
+                <p class="text-error text-sm mt-1">{{ $message }}</p>
+            @enderror
+
+            @if($coverImage)
+                <div class="mt-3">
+                    <img src="{{ $coverImage->temporaryUrl() }}" alt="Cover preview" class="h-32 w-32 rounded-box bg-base-300/30 object-contain p-1" />
+                </div>
+            @elseif($playlist->cover_path && ! $removeCoverImage)
+                <div class="mt-3 flex items-start gap-3">
+                    <img src="{{ asset('storage/'.$playlist->cover_path) }}" alt="Current cover" class="h-32 w-32 rounded-box bg-base-300/30 object-contain p-1" />
+                    <button type="button" class="btn btn-sm btn-outline" wire:click="removeCover">
+                        {{ __('Remove cover') }}
+                    </button>
+                </div>
+            @endif
+        </div>
+
         <!-- File Upload -->
         <div>
             <label class="block mb-2 font-medium">{{ __('Add New Tracks') }}</label>

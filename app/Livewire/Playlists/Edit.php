@@ -32,6 +32,10 @@ class Edit extends Component
 
     public array $uploadedFiles = [];
 
+    public $coverImage;
+
+    public bool $removeCoverImage = false;
+
     public function mount(Playlist $playlist): void
     {
         $this->playlist = $playlist;
@@ -146,11 +150,28 @@ class Edit extends Component
             'name' => 'required|string|max:255',
             'rfidUid' => 'nullable|string|max:255|unique:playlists,rfid_uid,'.$this->playlist->id,
             'volumeProfile' => 'nullable|integer|min:0|max:100',
+            'coverImage' => 'nullable|image|max:5120',
             'tracks' => 'required|array|min:1',
         ]);
 
+        $coverPath = $this->playlist->cover_path;
+
+        if ($this->removeCoverImage && $coverPath) {
+            Storage::disk('public')->delete($coverPath);
+            $coverPath = null;
+        }
+
+        if ($this->coverImage) {
+            if ($coverPath) {
+                Storage::disk('public')->delete($coverPath);
+            }
+
+            $coverPath = $this->coverImage->store('playlist-covers', 'public');
+        }
+
         $this->playlist->update([
             'name' => $this->name,
+            'cover_path' => $coverPath,
             'rfid_uid' => app(RfidTagNormalizer::class)->normalize($this->rfidUid),
             'volume_profile' => $this->normalizeVolumeProfile(),
         ]);
@@ -204,6 +225,12 @@ class Edit extends Component
         session()->flash('message', "Playlist '{$this->playlist->name}' aktualisiert!");
 
         return $this->redirect('/', navigate: true);
+    }
+
+    public function removeCover(): void
+    {
+        $this->coverImage = null;
+        $this->removeCoverImage = true;
     }
 
     private function reorderTracks(): void

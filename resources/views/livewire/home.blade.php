@@ -64,6 +64,11 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
             @foreach($this->playlists as $playlist)
                 <div class="card bg-base-200 shadow-xl hover:shadow-2xl transition-shadow">
+                    @if($playlist->cover_path)
+                        <figure class="px-4 pt-4 sm:px-5 sm:pt-5">
+                            <img src="{{ asset('storage/'.$playlist->cover_path) }}" alt="{{ $playlist->name }} cover" class="h-40 w-full rounded-box bg-base-300/30 object-contain p-1" />
+                        </figure>
+                    @endif
                     <div class="card-body p-4 sm:p-5">
                         <h2 class="card-title text-lg sm:text-xl truncate">{{ $playlist->name }}</h2>
                         <p class="text-sm opacity-60">

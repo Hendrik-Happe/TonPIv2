@@ -30,6 +30,8 @@ class Create extends Component
 
     public array $uploadedFiles = [];
 
+    public $coverImage;
+
     public function mount(): void
     {
         // Initialize with empty state
@@ -135,11 +137,15 @@ class Create extends Component
             'name' => 'required|string|max:255',
             'rfidUid' => 'nullable|string|max:255|unique:playlists,rfid_uid',
             'volumeProfile' => 'nullable|integer|min:0|max:100',
+            'coverImage' => 'nullable|image|max:5120',
             'tracks' => 'required|array|min:1',
         ]);
 
+        $coverPath = $this->coverImage?->store('playlist-covers', 'public');
+
         $playlist = Playlist::create([
             'name' => $this->name,
+            'cover_path' => $coverPath,
             'rfid_uid' => app(RfidTagNormalizer::class)->normalize($this->rfidUid),
             'volume_profile' => $this->normalizeVolumeProfile(),
         ]);

@@ -4,20 +4,30 @@
             <div class="flex flex-col gap-3">
                 <!-- Now Playing Info -->
                 <div class="flex items-center justify-between gap-2">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs sm:text-sm font-semibold opacity-60 truncate">
-                            {{ $this->currentPlaylist->name }}
-                        </div>
-                        @if($this->currentTrack)
-                            <div class="text-sm sm:text-base font-bold truncate">
-                                {{ $this->currentTrack->title }}
-                            </div>
-                            <div class="text-xs opacity-60">
-                                {{ __('Track') }} {{ $this->playerState->current_position + 1 }} {{ __('of') }} {{ $this->currentPlaylist->tracks->count() }}
-                            </div>
-                        @else
-                            <div class="text-sm opacity-60">{{ __('No track playing') }}</div>
+                    <div class="flex min-w-0 flex-1 items-center gap-3">
+                        @if($this->currentPlaylist->cover_path)
+                            <img
+                                src="{{ asset('storage/'.$this->currentPlaylist->cover_path) }}"
+                                alt="{{ $this->currentPlaylist->name }} cover"
+                                class="h-12 w-12 rounded-box bg-base-300/30 object-contain p-0.5"
+                            />
                         @endif
+
+                        <div class="min-w-0 flex-1">
+                            <div class="text-xs sm:text-sm font-semibold opacity-60 truncate">
+                                {{ $this->currentPlaylist->name }}
+                            </div>
+                            @if($this->currentTrack)
+                                <div class="text-sm sm:text-base font-bold truncate">
+                                    {{ $this->currentTrack->title }}
+                                </div>
+                                <div class="text-xs opacity-60">
+                                    {{ __('Track') }} {{ $this->playerState->current_position + 1 }} {{ __('of') }} {{ $this->currentPlaylist->tracks->count() }}
+                                </div>
+                            @else
+                                <div class="text-sm opacity-60">{{ __('No track playing') }}</div>
+                            @endif
+                        </div>
                     </div>
 
                     <!-- Status Badge -->

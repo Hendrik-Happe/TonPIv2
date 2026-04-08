@@ -19,6 +19,7 @@ class PlaylistFactory extends Factory
     {
         return [
             'name' => fake()->words(3, true),
+            'cover_path' => null,
             'rfid_uid' => null,
             'volume_profile' => null,
         ];
