@@ -100,16 +100,20 @@ class PlayerManager
         ?string $rfidUid = null,
     ): void {
         $this->state = $this->state->fresh();
+        $isRemoteStream = $this->isCurrentTrackRemoteStream();
 
         if (! $this->state->isPlaying()) {
             return;
         }
 
-        if ($this->isMplayerProcessRunning()) {
+        if ($isRemoteStream) {
+            $this->killCurrentMplayerProcess();
+        } elseif ($this->isMplayerProcessRunning()) {
             $this->sendCommandToFifo('pause');
         } else {
             // mplayer process not found – kill any stray processes as a fallback
             shell_exec('pkill -9 mplayer 2>/dev/null');
+            shell_exec('pkill -9 ffplay 2>/dev/null');
         }
 
         $this->state->update(['status' => 'paused']);
@@ -133,9 +137,10 @@ class PlayerManager
         ?string $rfidUid = null,
     ): void {
         $this->state = $this->state->fresh();
+        $isRemoteStream = $this->isCurrentTrackRemoteStream();
 
         if ($this->state->isPaused()) {
-            if ($this->isMplayerProcessRunning()) {
+            if (! $isRemoteStream && $this->isMplayerProcessRunning()) {
                 $this->sendCommandToFifo('pause');
                 $this->state->update(['status' => 'playing']);
 
@@ -421,6 +426,17 @@ class PlayerManager
         }
     }
 
+    private function isCurrentTrackRemoteStream(): bool
+    {
+        $track = $this->state->currentTrack;
+
+        if ($track === null) {
+            return false;
+        }
+
+        return filter_var($track->file_path, FILTER_VALIDATE_URL) !== false;
+    }
+
     /**
      * Kill current mplayer process if running.
      */
@@ -442,6 +458,7 @@ class PlayerManager
 
         // Kill ALL mplayer processes as a safety net (only affects processes we own)
         shell_exec('pkill -9 mplayer 2>/dev/null');
+        shell_exec('pkill -9 ffplay 2>/dev/null');
         usleep(100000);
     }
 

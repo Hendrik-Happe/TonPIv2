@@ -76,8 +76,8 @@ class PlayTrack implements ShouldQueue
                 }
             }
 
-            // Starte mplayer
-            $command = $this->buildMplayerCommand($fifoPath, $filePath);
+            // Start local files with mplayer, but use ffplay for remote streams (more reliable for HLS).
+            $command = $this->buildPlaybackCommand($fifoPath, $filePath);
 
             \Log::info('PlayTrack Job: Executing command', [
                 'command' => $command,
@@ -114,25 +114,24 @@ class PlayTrack implements ShouldQueue
         }
     }
 
-    private function buildMplayerCommand(string $fifoPath, string $filePath): string
+    private function buildPlaybackCommand(string $fifoPath, string $filePath): string
     {
         $logSuffix = time();
         $escapedFifo = escapeshellarg($fifoPath);
         $escapedSource = escapeshellarg($filePath);
         $commonArgs = '-slave -quiet -prefer-ipv4 -input file='.$escapedFifo;
 
-        if ($this->isM3uPlaylist($filePath)) {
+        if ($this->isRemoteStream($filePath)) {
             return sprintf(
-                'nohup mplayer %s -nocache -playlist %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
-                $commonArgs,
+                'nohup ffplay -nodisp -autoexit -loglevel warning -fflags nobuffer -flags low_delay -i %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
                 $escapedSource,
                 $logSuffix,
             );
         }
 
-        if ($this->isRemoteStream($filePath)) {
+        if ($this->isM3uPlaylist($filePath)) {
             return sprintf(
-                'nohup mplayer %s -nocache -demuxer lavf %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
+                'nohup mplayer %s -nocache -playlist %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
                 $commonArgs,
                 $escapedSource,
                 $logSuffix,

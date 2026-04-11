@@ -15,7 +15,7 @@ class PlayTrackJobTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_it_uses_playlist_mode_for_m3u_stream_urls(): void
+    public function test_it_uses_ffplay_for_m3u_stream_urls(): void
     {
         $playlist = Playlist::factory()->create();
         $track = Track::factory()->for($playlist)->create([
@@ -23,16 +23,17 @@ class PlayTrackJobTest extends TestCase
         ]);
 
         $job = new PlayTrack($track);
-        $method = new \ReflectionMethod($job, 'buildMplayerCommand');
+        $method = new \ReflectionMethod($job, 'buildPlaybackCommand');
         $method->setAccessible(true);
 
         $command = $method->invoke($job, '/tmp/test_fifo', $track->file_path);
 
-        $this->assertStringContainsString('-playlist', $command);
+        $this->assertStringContainsString('ffplay', $command);
+        $this->assertStringNotContainsString('-playlist', $command);
         $this->assertStringContainsString(escapeshellarg($track->file_path), $command);
     }
 
-    public function test_it_uses_direct_source_mode_for_m3u8_stream_urls(): void
+    public function test_it_uses_ffplay_for_m3u8_stream_urls(): void
     {
         $playlist = Playlist::factory()->create();
         $track = Track::factory()->for($playlist)->create([
@@ -40,11 +41,12 @@ class PlayTrackJobTest extends TestCase
         ]);
 
         $job = new PlayTrack($track);
-        $method = new \ReflectionMethod($job, 'buildMplayerCommand');
+        $method = new \ReflectionMethod($job, 'buildPlaybackCommand');
         $method->setAccessible(true);
 
         $command = $method->invoke($job, '/tmp/test_fifo', $track->file_path);
 
+        $this->assertStringContainsString('ffplay', $command);
         $this->assertStringNotContainsString('-playlist', $command);
         $this->assertStringContainsString(escapeshellarg($track->file_path), $command);
     }
@@ -57,11 +59,12 @@ class PlayTrackJobTest extends TestCase
         ]);
 
         $job = new PlayTrack($track);
-        $method = new \ReflectionMethod($job, 'buildMplayerCommand');
+        $method = new \ReflectionMethod($job, 'buildPlaybackCommand');
         $method->setAccessible(true);
 
         $command = $method->invoke($job, '/tmp/test_fifo', $track->file_path);
 
+        $this->assertStringContainsString('mplayer', $command);
         $this->assertStringNotContainsString('-playlist', $command);
         $this->assertStringContainsString(escapeshellarg($track->file_path), $command);
     }
