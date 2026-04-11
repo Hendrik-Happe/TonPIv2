@@ -1,0 +1,19 @@
+[Unit]
+Description=TonPI Wi-Fi Manager Service
+After=network-online.target NetworkManager.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{SERVICE_USER}}
+WorkingDirectory={{PROJECT_DIR}}
+EnvironmentFile=-{{PROJECT_DIR}}/.env
+ExecStart={{PHP_PATH}} artisan wifi:manage --interval=20
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=tonpi-wifi
+
+[Install]
+WantedBy=multi-user.target
