@@ -119,33 +119,48 @@ class PlayTrack implements ShouldQueue
         $logSuffix = time();
         $escapedFifo = escapeshellarg($fifoPath);
         $escapedSource = escapeshellarg($filePath);
+        $commonArgs = '-slave -quiet -prefer-ipv4 -input file='.$escapedFifo;
 
-        if ($this->isPlaylistStream($filePath)) {
+        if ($this->isM3uPlaylist($filePath)) {
             return sprintf(
-                'nohup mplayer -slave -quiet -input file=%s -playlist %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
-                $escapedFifo,
+                'nohup mplayer %s -nocache -playlist %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
+                $commonArgs,
+                $escapedSource,
+                $logSuffix,
+            );
+        }
+
+        if ($this->isRemoteStream($filePath)) {
+            return sprintf(
+                'nohup mplayer %s -nocache -demuxer lavf %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
+                $commonArgs,
                 $escapedSource,
                 $logSuffix,
             );
         }
 
         return sprintf(
-            'nohup mplayer -slave -quiet -input file=%s %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
-            $escapedFifo,
+            'nohup mplayer %s %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
+            $commonArgs,
             $escapedSource,
             $logSuffix,
         );
     }
 
-    private function isPlaylistStream(string $filePath): bool
+    private function isM3uPlaylist(string $filePath): bool
     {
-        if (filter_var($filePath, FILTER_VALIDATE_URL) === false) {
+        if (! $this->isRemoteStream($filePath)) {
             return false;
         }
 
         $path = (string) parse_url($filePath, PHP_URL_PATH);
 
-        return Str::endsWith(Str::lower($path), ['.m3u', '.m3u8']);
+        return Str::endsWith(Str::lower($path), '.m3u');
+    }
+
+    private function isRemoteStream(string $filePath): bool
+    {
+        return filter_var($filePath, FILTER_VALIDATE_URL) !== false;
     }
 
     /**

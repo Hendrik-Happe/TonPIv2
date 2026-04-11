@@ -4,7 +4,9 @@
             <li><a href="{{ route('profile.edit') }}" wire:navigate>{{ __('Profile') }}</a></li>
             <li><a href="{{ route('security.edit') }}" wire:navigate>{{ __('Security') }}</a></li>
             <li><a href="{{ route('appearance.edit') }}" wire:navigate>{{ __('Appearance') }}</a></li>
-            <li><a href="{{ route('wifi.edit') }}" wire:navigate>{{ __('Wi-Fi') }}</a></li>
+            @if (Route::has('wifi.edit'))
+                <li><a href="{{ route('wifi.edit') }}" wire:navigate>{{ __('Wi-Fi') }}</a></li>
+            @endif
         </ul>
     </div>
 
