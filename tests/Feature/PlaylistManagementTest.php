@@ -220,6 +220,37 @@ class PlaylistManagementTest extends TestCase
         ]);
     }
 
+    public function test_can_add_m3u8_stream_track_and_create_playlist(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('name', 'Stream Playlist')
+            ->set('streamUrl', 'https://radio.example.com/live.m3u8')
+            ->set('streamTitle', 'Radio Live')
+            ->call('addStreamTrack')
+            ->call('save')
+            ->assertRedirect('/playlists');
+
+        $playlist = Playlist::where('name', 'Stream Playlist')->firstOrFail();
+
+        $this->assertDatabaseHas('tracks', [
+            'playlist_id' => $playlist->id,
+            'title' => 'Radio Live',
+            'file_path' => 'https://radio.example.com/live.m3u8',
+            'duration' => 0,
+            'track_number' => 1,
+        ]);
+    }
+
+    public function test_rejects_non_m3u_stream_urls(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('streamUrl', 'https://radio.example.com/live.mp3')
+            ->call('addStreamTrack')
+            ->assertHasErrors(['streamUrl']);
+    }
+
     public function test_can_create_playlist_with_cover_image(): void
     {
         $audio = UploadedFile::fake()->create('track-1.mp3', 1024, 'audio/mpeg');
@@ -237,6 +268,28 @@ class PlaylistManagementTest extends TestCase
 
         $this->assertNotNull($playlist->cover_path);
         Storage::disk('public')->assertExists($playlist->cover_path);
+    }
+
+    public function test_can_add_stream_track_when_editing_playlist(): void
+    {
+        $playlist = Playlist::factory()->create(['name' => 'Edit Stream Playlist']);
+        Track::factory()->create([
+            'playlist_id' => $playlist->id,
+            'track_number' => 1,
+        ]);
+
+        Livewire::actingAs($this->user)
+            ->test(Edit::class, ['playlist' => $playlist])
+            ->set('streamUrl', 'https://radio.example.com/new-feed.m3u')
+            ->set('streamTitle', 'News Feed')
+            ->call('addStreamTrack')
+            ->call('save');
+
+        $this->assertDatabaseHas('tracks', [
+            'playlist_id' => $playlist->id,
+            'title' => 'News Feed',
+            'file_path' => 'https://radio.example.com/new-feed.m3u',
+        ]);
     }
 
     public function test_can_create_playlist_with_tags(): void

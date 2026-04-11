@@ -128,6 +128,33 @@
             </div>
         </div>
 
+        <div class="bg-base-200 p-4 rounded-lg">
+            <h3 class="text-lg font-semibold mb-3">{{ __('Add Web Stream (M3U/M3U8)') }}</h3>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <input
+                    type="url"
+                    wire:model="streamUrl"
+                    placeholder="https://example.com/stream.m3u8"
+                    class="input input-bordered md:col-span-2"
+                >
+                <input
+                    type="text"
+                    wire:model="streamTitle"
+                    placeholder="{{ __('Optional title') }}"
+                    class="input input-bordered"
+                >
+            </div>
+
+            <div class="mt-3">
+                <button type="button" class="btn btn-outline btn-sm" wire:click="addStreamTrack">{{ __('Add Stream') }}</button>
+            </div>
+
+            @error('streamUrl')
+                <p class="text-error text-sm mt-2">{{ $message }}</p>
+            @enderror
+        </div>
+
         <!-- Tracks List -->
         @if(count($tracks) > 0)
             <div>

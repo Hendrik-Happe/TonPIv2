@@ -38,7 +38,6 @@ class ApplicationInstallerTest extends TestCase
         Artisan::shouldReceive('call')->once()->with('key:generate', ['--force' => true])->andReturn(0);
         Artisan::shouldReceive('call')->once()->with('storage:link', ['--force' => true])->andReturn(0);
         Artisan::shouldReceive('call')->once()->with('migrate', ['--force' => true])->andReturn(0);
-        Artisan::shouldReceive('call')->once()->with('db:seed', ['--force' => true])->andReturn(0);
 
         $command = $this->mock(Command::class);
         $command->shouldReceive('info')->zeroOrMoreTimes();
@@ -56,6 +55,7 @@ class ApplicationInstallerTest extends TestCase
         $this->assertNotNull($user);
         $this->assertSame('Install Admin', $user->name);
         $this->assertTrue(Hash::check('secret-password', $user->password));
+        $this->assertSame(1, User::query()->count());
 
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-player-queue.service'));
         $this->assertFileExists(storage_path('framework/testing/systemd/tonpi-scheduler.service'));

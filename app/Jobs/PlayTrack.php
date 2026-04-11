@@ -7,6 +7,7 @@ use App\Models\Track;
 use App\Services\PlayerManager;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
+use Illuminate\Support\Str;
 
 class PlayTrack implements ShouldQueue
 {
@@ -47,6 +48,7 @@ class PlayTrack implements ShouldQueue
 
             $fifoPath = config('player.player.fifo_path');
             $filePath = $this->track->file_path;
+            $isRemoteStream = filter_var($filePath, FILTER_VALIDATE_URL) !== false;
 
             \Log::info('PlayTrack Job: Starting playback', [
                 'track_id' => $this->track->id,
@@ -55,8 +57,8 @@ class PlayTrack implements ShouldQueue
                 'fifo_path' => $fifoPath,
             ]);
 
-            // Überprüfe ob Datei existiert
-            if (! file_exists($filePath)) {
+            // Only local files must exist on disk. Remote streams are passed directly to mplayer.
+            if (! $isRemoteStream && ! file_exists($filePath)) {
                 \Log::error('PlayTrack Job: File not found', [
                     'track_id' => $this->track->id,
                     'file_path' => $filePath,
@@ -75,12 +77,7 @@ class PlayTrack implements ShouldQueue
             }
 
             // Starte mplayer
-            $command = sprintf(
-                'nohup mplayer -slave -quiet -input file=%s %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
-                escapeshellarg($fifoPath),
-                escapeshellarg($filePath),
-                time()
-            );
+            $command = $this->buildMplayerCommand($fifoPath, $filePath);
 
             \Log::info('PlayTrack Job: Executing command', [
                 'command' => $command,
@@ -115,6 +112,40 @@ class PlayTrack implements ShouldQueue
             ]);
             throw $e;
         }
+    }
+
+    private function buildMplayerCommand(string $fifoPath, string $filePath): string
+    {
+        $logSuffix = time();
+        $escapedFifo = escapeshellarg($fifoPath);
+        $escapedSource = escapeshellarg($filePath);
+
+        if ($this->isPlaylistStream($filePath)) {
+            return sprintf(
+                'nohup mplayer -slave -quiet -input file=%s -playlist %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
+                $escapedFifo,
+                $escapedSource,
+                $logSuffix,
+            );
+        }
+
+        return sprintf(
+            'nohup mplayer -slave -quiet -input file=%s %s > /tmp/mplayer_%s.log 2>&1 & echo $!',
+            $escapedFifo,
+            $escapedSource,
+            $logSuffix,
+        );
+    }
+
+    private function isPlaylistStream(string $filePath): bool
+    {
+        if (filter_var($filePath, FILTER_VALIDATE_URL) === false) {
+            return false;
+        }
+
+        $path = (string) parse_url($filePath, PHP_URL_PATH);
+
+        return Str::endsWith(Str::lower($path), ['.m3u', '.m3u8']);
     }
 
     /**

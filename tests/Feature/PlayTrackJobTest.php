@@ -15,6 +15,40 @@ class PlayTrackJobTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_it_uses_playlist_mode_for_m3u8_stream_urls(): void
+    {
+        $playlist = Playlist::factory()->create();
+        $track = Track::factory()->for($playlist)->create([
+            'file_path' => 'https://radio.example.com/live.m3u8',
+        ]);
+
+        $job = new PlayTrack($track);
+        $method = new \ReflectionMethod($job, 'buildMplayerCommand');
+        $method->setAccessible(true);
+
+        $command = $method->invoke($job, '/tmp/test_fifo', $track->file_path);
+
+        $this->assertStringContainsString('-playlist', $command);
+        $this->assertStringContainsString(escapeshellarg($track->file_path), $command);
+    }
+
+    public function test_it_uses_direct_source_mode_for_non_playlist_sources(): void
+    {
+        $playlist = Playlist::factory()->create();
+        $track = Track::factory()->for($playlist)->create([
+            'file_path' => '/tmp/local-track.mp3',
+        ]);
+
+        $job = new PlayTrack($track);
+        $method = new \ReflectionMethod($job, 'buildMplayerCommand');
+        $method->setAccessible(true);
+
+        $command = $method->invoke($job, '/tmp/test_fifo', $track->file_path);
+
+        $this->assertStringNotContainsString('-playlist', $command);
+        $this->assertStringContainsString(escapeshellarg($track->file_path), $command);
+    }
+
     public function test_it_skips_stale_playback_jobs_when_track_is_no_longer_current(): void
     {
         $playlist = Playlist::factory()->create();

@@ -37,6 +37,10 @@ class Edit extends Component
 
     public array $uploadedFiles = [];
 
+    public string $streamUrl = '';
+
+    public string $streamTitle = '';
+
     public $coverImage;
 
     public bool $removeCoverImage = false;
@@ -51,13 +55,16 @@ class Edit extends Component
 
         // Load existing tracks
         foreach ($playlist->tracks as $track) {
+            $isStream = $this->isRemoteStream($track->file_path);
+
             $this->tracks[] = [
                 'id' => $track->id,
                 'title' => $track->title,
-                'file_name' => basename($track->file_path),
+                'file_name' => $isStream ? $track->file_path : basename($track->file_path),
                 'duration' => $track->duration,
                 'track_number' => $track->track_number,
                 'existing' => true,
+                'is_stream' => $isStream,
             ];
         }
     }
@@ -78,9 +85,10 @@ class Edit extends Component
                 'title' => $originalName,
                 'file' => $file,
                 'file_name' => $file->getClientOriginalName(),
-                'duration' => $duration,
+                'duration' => max(0, (int) ($duration ?? 0)),
                 'track_number' => count($this->tracks) + 1,
                 'existing' => false,
+                'is_stream' => false,
             ];
         }
 
@@ -111,6 +119,41 @@ class Edit extends Component
     {
         $this->tracks = array_values(array_filter($this->tracks, fn ($track) => $track['id'] != $id));
         $this->reorderTracks();
+    }
+
+    public function addStreamTrack(): void
+    {
+        $validated = $this->validate([
+            'streamUrl' => ['required', 'url', 'max:2048'],
+            'streamTitle' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $streamUrl = trim((string) $validated['streamUrl']);
+
+        if (! $this->isM3uStreamUrl($streamUrl)) {
+            $this->addError('streamUrl', 'Only M3U or M3U8 stream URLs are allowed.');
+
+            return;
+        }
+
+        $title = trim((string) $validated['streamTitle']);
+
+        if ($title === '') {
+            $title = $this->inferStreamTitle($streamUrl);
+        }
+
+        $this->tracks[] = [
+            'id' => uniqid(),
+            'title' => $title,
+            'file_path' => $streamUrl,
+            'file_name' => $streamUrl,
+            'duration' => 0,
+            'track_number' => count($this->tracks) + 1,
+            'existing' => false,
+            'is_stream' => true,
+        ];
+
+        $this->reset('streamUrl', 'streamTitle');
     }
 
     public function updateTrackOrder(array $orderedIds): void
@@ -195,6 +238,8 @@ class Edit extends Component
 
         // Create tracks based on current state
         foreach ($this->tracks as $index => $trackData) {
+            $fullPath = $trackData['file_path'] ?? null;
+
             if (isset($trackData['file'])) {
                 // New uploaded file
                 $filePath = $trackData['file']->store('audio', 'public');
@@ -203,7 +248,7 @@ class Edit extends Component
                 // Existing track - reuse the file path
                 $existingTrack = $existingTracks->get($trackData['id']);
                 $fullPath = $existingTrack->file_path;
-            } else {
+            } elseif ($fullPath === null || $fullPath === '') {
                 // Unknown state, skip
                 continue;
             }
@@ -212,7 +257,7 @@ class Edit extends Component
                 'playlist_id' => $this->playlist->id,
                 'title' => $trackData['title'],
                 'file_path' => $fullPath,
-                'duration' => $trackData['duration'],
+                'duration' => max(0, (int) ($trackData['duration'] ?? 0)),
                 'track_number' => $index + 1,
             ]);
         }
@@ -225,7 +270,7 @@ class Edit extends Component
 
         foreach ($existingTracks as $existingTrack) {
             if (! in_array($existingTrack->id, $remainingTrackIds)) {
-                if (file_exists($existingTrack->file_path)) {
+                if (! $this->isRemoteStream($existingTrack->file_path) && file_exists($existingTrack->file_path)) {
                     @unlink($existingTrack->file_path);
                 }
             }
@@ -287,5 +332,29 @@ class Edit extends Component
     public function render()
     {
         return view('livewire.playlists.edit');
+    }
+
+    private function isM3uStreamUrl(string $url): bool
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        return Str::endsWith(Str::lower($path), ['.m3u', '.m3u8']);
+    }
+
+    private function isRemoteStream(string $path): bool
+    {
+        return filter_var($path, FILTER_VALIDATE_URL) !== false;
+    }
+
+    private function inferStreamTitle(string $url): string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $basename = pathinfo($path, PATHINFO_FILENAME);
+
+        if ($basename !== '') {
+            return str_replace(['-', '_'], ' ', $basename);
+        }
+
+        return 'Web Stream';
     }
 }

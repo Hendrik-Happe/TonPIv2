@@ -35,6 +35,10 @@ class Create extends Component
 
     public array $uploadedFiles = [];
 
+    public string $streamUrl = '';
+
+    public string $streamTitle = '';
+
     public $coverImage;
 
     public function mount(): void
@@ -63,8 +67,9 @@ class Create extends Component
                 'title' => $originalName,
                 'file' => $file,
                 'file_name' => $file->getClientOriginalName(),
-                'duration' => $duration,
+                'duration' => max(0, (int) ($duration ?? 0)),
                 'track_number' => count($this->tracks) + 1,
+                'is_stream' => false,
             ];
         }
 
@@ -96,6 +101,40 @@ class Create extends Component
     {
         $this->tracks = array_values(array_filter($this->tracks, fn ($track) => $track['id'] !== $id));
         $this->reorderTracks();
+    }
+
+    public function addStreamTrack(): void
+    {
+        $validated = $this->validate([
+            'streamUrl' => ['required', 'url', 'max:2048'],
+            'streamTitle' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $streamUrl = trim((string) $validated['streamUrl']);
+
+        if (! $this->isM3uStreamUrl($streamUrl)) {
+            $this->addError('streamUrl', 'Only M3U or M3U8 stream URLs are allowed.');
+
+            return;
+        }
+
+        $title = trim((string) $validated['streamTitle']);
+
+        if ($title === '') {
+            $title = $this->inferStreamTitle($streamUrl);
+        }
+
+        $this->tracks[] = [
+            'id' => uniqid(),
+            'title' => $title,
+            'file_path' => $streamUrl,
+            'file_name' => $streamUrl,
+            'duration' => 0,
+            'track_number' => count($this->tracks) + 1,
+            'is_stream' => true,
+        ];
+
+        $this->reset('streamUrl', 'streamTitle');
     }
 
     public function updateTrackOrder(array $orderedIds): void
@@ -158,14 +197,22 @@ class Create extends Component
 
         // Ensure tracks are in the correct order before saving
         foreach ($this->tracks as $index => $trackData) {
-            // Store the audio file permanently
-            $filePath = $trackData['file']->store('audio', 'public');
+            $filePath = $trackData['file_path'] ?? null;
+
+            if (isset($trackData['file'])) {
+                $storedPath = $trackData['file']->store('audio', 'public');
+                $filePath = Storage::disk('public')->path($storedPath);
+            }
+
+            if ($filePath === null || $filePath === '') {
+                continue;
+            }
 
             Track::create([
                 'playlist_id' => $playlist->id,
                 'title' => $trackData['title'],
-                'file_path' => Storage::disk('public')->path($filePath),
-                'duration' => $trackData['duration'],
+                'file_path' => $filePath,
+                'duration' => max(0, (int) ($trackData['duration'] ?? 0)),
                 'track_number' => $index + 1, // Use array index to ensure correct order
             ]);
         }
@@ -222,5 +269,24 @@ class Create extends Component
     public function render()
     {
         return view('livewire.playlists.create');
+    }
+
+    private function isM3uStreamUrl(string $url): bool
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+
+        return Str::endsWith(Str::lower($path), ['.m3u', '.m3u8']);
+    }
+
+    private function inferStreamTitle(string $url): string
+    {
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        $basename = pathinfo($path, PATHINFO_FILENAME);
+
+        if ($basename !== '') {
+            return str_replace(['-', '_'], ' ', $basename);
+        }
+
+        return 'Web Stream';
     }
 }

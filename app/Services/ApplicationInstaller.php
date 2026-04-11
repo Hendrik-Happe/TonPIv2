@@ -41,7 +41,6 @@ class ApplicationInstaller
             $command->info('Skipping initial user creation.');
         }
 
-        $this->runArtisanStep('db:seed', ['--force' => true]);
         $this->createSystemdServices($command);
 
         $this->runPostInstallChecks($command);
