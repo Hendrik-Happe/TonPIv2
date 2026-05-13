@@ -81,7 +81,11 @@ class ApplicationInstallerTest extends TestCase
         $this->assertStringContainsString('User=tonpi-svc', $schedulerService);
         $this->assertStringContainsString('Group=tonpi-svc-group', $schedulerService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan rfid:listen', $rfidListenerService);
+        $this->assertStringContainsString('After=network.target tonpi-player-queue.service', $rfidListenerService);
+        $this->assertStringContainsString('StartLimitIntervalSec=0', $rfidListenerService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan gpio:listen-controls', $gpioControlsService);
+        $this->assertStringContainsString('After=network.target tonpi-player-queue.service', $gpioControlsService);
+        $this->assertStringContainsString('StartLimitIntervalSec=0', $gpioControlsService);
         $this->assertStringContainsString('ExecStart=/usr/bin/env php artisan serve --host=0.0.0.0 --port=8000', $webService);
 
         $installEnvPath = storage_path('framework/testing/install/.env');

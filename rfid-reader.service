@@ -1,6 +1,6 @@
 [Unit]
 Description=TonPI RFID Reader Service
-After=network.target
+After=network.target tonpi-player-queue.service
 
 [Service]
 Type=simple
@@ -13,6 +13,7 @@ Restart=always
 RestartSec=5
 StandardOutput=journal
 StandardError=journal
+StartLimitIntervalSec=0
 
 [Install]
 WantedBy=multi-user.target

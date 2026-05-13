@@ -262,11 +262,13 @@ class ApplicationInstaller
             ),
             'tonpi-rfid-listener.service' => $this->buildSystemdService(
                 'TonPI RFID Listener',
-                '/usr/bin/env php artisan rfid:listen'
+                '/usr/bin/env php artisan rfid:listen',
+                ['tonpi-player-queue.service']
             ),
             'tonpi-gpio-controls.service' => $this->buildSystemdService(
                 'TonPI GPIO Controls',
-                '/usr/bin/env php artisan gpio:listen-controls'
+                '/usr/bin/env php artisan gpio:listen-controls',
+                ['tonpi-player-queue.service']
             ),
             'tonpi-web.service' => $this->buildSystemdService(
                 'TonPI Web Server',
@@ -396,16 +398,21 @@ class ApplicationInstaller
         return '/etc/systemd/system';
     }
 
-    private function buildSystemdService(string $description, string $execStart): string
+    /**
+     * @param  list<string>  $afterServices
+     */
+    private function buildSystemdService(string $description, string $execStart, array $afterServices = []): string
     {
         $user = $this->systemUser();
         $group = $this->systemGroup($user);
         $workingDirectory = base_path();
 
+        $afterTargets = array_merge(['network.target'], $afterServices);
+
         return implode("\n", [
             '[Unit]',
             sprintf('Description=%s', $description),
-            'After=network.target',
+            sprintf('After=%s', implode(' ', $afterTargets)),
             '',
             '[Service]',
             'Type=simple',
@@ -415,6 +422,7 @@ class ApplicationInstaller
             sprintf('ExecStart=%s', $execStart),
             'Restart=always',
             'RestartSec=5',
+            'StartLimitIntervalSec=0',
             '',
             '[Install]',
             'WantedBy=multi-user.target',
