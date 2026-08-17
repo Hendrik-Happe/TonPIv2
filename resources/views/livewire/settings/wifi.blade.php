@@ -57,7 +57,7 @@
 
                     <form wire:submit="saveNetwork" class="space-y-4 mt-3">
                         <fieldset class="fieldset">
-                            <legend class="fieldset-legend">SSID</legend>
+                            <legend class="fieldset-legend">{{ __('SSID') }}</legend>
                             <input wire:model="ssid" type="text" class="input input-bordered w-full" required />
                             @error('ssid')
                                 <label class="label"><span class="label-text-alt text-error">{{ $message }}</span></label>

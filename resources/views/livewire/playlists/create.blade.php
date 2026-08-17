@@ -1,5 +1,5 @@
 <div class="max-w-4xl mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">Create New Playlist</h1>
+    <h1 class="text-3xl font-bold mb-6">{{ __('Create New Playlist') }}</h1>
 
     @if (session('message'))
         <div role="alert" class="alert alert-success mb-4">
@@ -14,9 +14,9 @@
         <!-- Playlist Name -->
         <div class="form-control mb-6">
             <label class="label">
-                <span class="label-text">Playlist Name</span>
+                <span class="label-text">{{ __('Playlist Name') }}</span>
             </label>
-            <input type="text" wire:model="name" placeholder="My Awesome Playlist" class="input input-bordered" />
+            <input type="text" wire:model="name" placeholder="{{ __('My Awesome Playlist') }}" class="input input-bordered" />
             @error('name')
                 <label class="label">
                     <span class="label-text-alt text-error">{{ $message }}</span>
@@ -26,12 +26,12 @@
 
         <div class="form-control mb-6">
             <label class="label">
-                <span class="label-text">RFID Chip ID</span>
+                <span class="label-text">{{ __('RFID Chip ID') }}</span>
             </label>
             <input type="text" wire:model="rfidUid" placeholder="04A1B2C3D4" class="input input-bordered" />
             <div class="mt-2 flex items-center gap-3">
                 <button type="button" class="btn btn-outline btn-sm" wire:click="readCurrentRfidUid" wire:loading.attr="disabled">
-                    <span wire:loading.remove wire:target="readCurrentRfidUid">Chip jetzt einlesen</span>
+                    <span wire:loading.remove wire:target="readCurrentRfidUid">{{ __('Chip jetzt einlesen') }}</span>
                     <span wire:loading wire:target="readCurrentRfidUid" class="loading loading-spinner loading-sm"></span>
                 </button>
                 @if ($rfidReadFeedback)
@@ -39,7 +39,7 @@
                 @endif
             </div>
             <label class="label">
-                <span class="label-text-alt">Optional. When this chip is scanned, this playlist starts automatically.</span>
+                <span class="label-text-alt">{{ __('Optional. When this chip is scanned, this playlist starts automatically.') }}</span>
             </label>
             @error('rfidUid')
                 <label class="label">
@@ -50,7 +50,7 @@
 
         <div class="form-control mb-6">
             <label class="label">
-                <span class="label-text">Lautstärke-Profil (%)</span>
+                <span class="label-text">{{ __('Lautstärke-Profil (%)') }}</span>
             </label>
             <input
                 type="number"
@@ -58,11 +58,11 @@
                 max="100"
                 step="1"
                 wire:model="volumeProfile"
-                placeholder="z. B. 60"
+                placeholder="{{ __('z. B. 60') }}"
                 class="input input-bordered"
             />
             <label class="label">
-                <span class="label-text-alt">Optional. Wird beim RFID-Start dieser Playlist automatisch gesetzt.</span>
+                <span class="label-text-alt">{{ __('Optional. Wird beim RFID-Start dieser Playlist automatisch gesetzt.') }}</span>
             </label>
             @error('volumeProfile')
                 <label class="label">
@@ -73,7 +73,7 @@
 
         <div class="form-control mb-6">
             <label class="label">
-                <span class="label-text">Playlist Cover</span>
+                <span class="label-text">{{ __('Playlist Cover') }}</span>
             </label>
             <input
                 type="file"
@@ -95,7 +95,7 @@
 
         <div class="form-control mb-6">
             <label class="label">
-                <span class="label-text">Tags</span>
+                <span class="label-text">{{ __('Tags') }}</span>
             </label>
             <input
                 type="text"
@@ -112,7 +112,7 @@
                 @endforeach
             </datalist>
             <label class="label">
-                <span class="label-text-alt">Einen Tag eingeben und mit Enter hinzufügen.</span>
+                <span class="label-text-alt">{{ __('Einen Tag eingeben und mit Enter hinzufügen.') }}</span>
             </label>
             @error('newTag')
                 <label class="label">
@@ -138,11 +138,11 @@
 
         <!-- Upload Audio Files Section -->
         <div class="bg-base-200 p-4 rounded-lg mb-6">
-            <h3 class="text-xl font-bold mb-4">Upload Audio Files</h3>
+            <h3 class="text-xl font-bold mb-4">{{ __('Upload Audio Files') }}</h3>
 
             <div class="form-control">
                 <label class="label cursor-pointer flex-col items-start">
-                    <span class="label-text mb-2">Select multiple audio files (MP3, WAV, OGG, FLAC, M4A, AAC, WMA - max 100MB each, 1GB total)</span>
+                    <span class="label-text mb-2">{{ __('Select multiple audio files (MP3, WAV, OGG, FLAC, M4A, AAC, WMA - max 100MB each, 1GB total)') }}</span>
                     <input 
                         type="file" 
                         wire:model="uploadedFiles" 
@@ -162,13 +162,13 @@
             <div wire:loading wire:target="uploadedFiles" class="mt-4">
                 <div class="flex items-center gap-3">
                     <span class="loading loading-spinner loading-md text-primary"></span>
-                    <span class="text-sm">Uploading and extracting metadata...</span>
+                    <span class="text-sm">{{ __('Uploading and extracting metadata...') }}</span>
                 </div>
             </div>
         </div>
 
         <div class="bg-base-200 p-4 rounded-lg mb-6">
-            <h3 class="text-xl font-bold mb-4">Add Web Stream (M3U/M3U8)</h3>
+            <h3 class="text-xl font-bold mb-4">{{ __('Add Web Stream (M3U/M3U8)') }}</h3>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <input
@@ -180,13 +180,13 @@
                 <input
                     type="text"
                     wire:model="streamTitle"
-                    placeholder="Optional title"
+                    placeholder="{{ __('Optional title') }}"
                     class="input input-bordered"
                 />
             </div>
 
             <div class="mt-3">
-                <button type="button" class="btn btn-outline btn-sm" wire:click="addStreamTrack">Add Stream</button>
+                <button type="button" class="btn btn-outline btn-sm" wire:click="addStreamTrack">{{ __('Add Stream') }}</button>
             </div>
 
             @error('streamUrl')
@@ -200,7 +200,7 @@
         @if(count($tracks) > 0)
             <div class="mb-6">
                 <h3 class="text-xl font-bold mb-4">
-                    Tracks ({{ count($tracks) }}) - Drag to reorder
+                    {{ __('Tracks') }} ({{ count($tracks) }}) - {{ __('Drag to reorder') }}
                 </h3>
 
                 <div 
@@ -247,7 +247,7 @@
                                             {{ $track['title'] }}
                                         </div>
                                         <div class="text-sm opacity-60">
-                                            {{ $track['file_name'] ?? 'Unknown file' }}
+                                            {{ $track['file_name'] ?? __('Unknown file') }}
                                             @if($track['duration'])
                                                 · {{ gmdate('i:s', $track['duration']) }}
                                             @endif
@@ -278,14 +278,14 @@
             @enderror
         @else
             <div class="text-center py-8 opacity-60 mb-6">
-                <p>No tracks added yet. Add your first track above.</p>
+                <p>{{ __('No tracks added yet. Add your first track above.') }}</p>
             </div>
         @endif
 
         <!-- Action Buttons -->
         <div class="flex gap-3">
             <button type="submit" class="btn btn-primary" @disabled(count($tracks) === 0)>
-                Create Playlist
+                {{ __('Create Playlist') }}
             </button>
             <a href="{{ route('playlists.index') }}" wire:navigate class="btn btn-ghost">
                 Cancel

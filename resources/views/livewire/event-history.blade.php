@@ -62,7 +62,7 @@
                                 <td>{{ $event->track?->title ?? '–' }}</td>
                                 <td>{{ $event->rfid_uid ?: '–' }}</td>
                                 <td>{{ $event->trigger ?: '–' }}</td>
-                                <td>{{ $event->initiated_by ?: 'system' }}</td>
+                                <td>{{ $event->initiated_by ?: __('system') }}</td>
                             </tr>
                         @empty
                             <tr>
