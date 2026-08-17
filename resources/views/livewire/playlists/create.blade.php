@@ -101,9 +101,16 @@
                 type="text"
                 wire:model="newTag"
                 wire:keydown.enter.prevent="addTag"
+                list="playlist-tag-suggestions"
+                autocomplete="off"
                 placeholder="sleep"
                 class="input input-bordered"
             />
+            <datalist id="playlist-tag-suggestions">
+                @foreach ($this->availableTagSuggestions as $tagSuggestion)
+                    <option value="{{ $tagSuggestion->name }}"></option>
+                @endforeach
+            </datalist>
             <label class="label">
                 <span class="label-text-alt">Einen Tag eingeben und mit Enter hinzufügen.</span>
             </label>

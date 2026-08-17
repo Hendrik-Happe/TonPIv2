@@ -332,6 +332,25 @@ class PlaylistManagementTest extends TestCase
             ->assertSet('tags', []);
     }
 
+    public function test_create_tag_autocomplete_suggests_existing_tags_without_selected_tags(): void
+    {
+        Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        Tag::factory()->create(['name' => 'sleepy', 'slug' => 'sleepy']);
+        Tag::factory()->create(['name' => 'kids', 'slug' => 'kids']);
+
+        $component = Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('tags', ['sleep'])
+            ->set('newTag', 'sl');
+
+        $suggestions = $component->instance()
+            ->getAvailableTagSuggestionsProperty()
+            ->pluck('name')
+            ->all();
+
+        $this->assertSame(['sleepy'], $suggestions);
+    }
+
     public function test_reordered_tracks_are_saved_in_correct_order(): void
     {
         $files = [
@@ -760,6 +779,30 @@ class PlaylistManagementTest extends TestCase
 
         $updated = $playlist->fresh();
         $this->assertSame(['focus', 'new'], $updated->tags()->orderBy('slug')->pluck('slug')->all());
+    }
+
+    public function test_edit_tag_autocomplete_suggests_existing_tags_without_selected_tags(): void
+    {
+        $playlist = Playlist::factory()->create();
+        Track::factory()->create([
+            'playlist_id' => $playlist->id,
+            'track_number' => 1,
+        ]);
+
+        $playlist->tags()->attach(Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep'])->id);
+        Tag::factory()->create(['name' => 'sleepy', 'slug' => 'sleepy']);
+        Tag::factory()->create(['name' => 'kids', 'slug' => 'kids']);
+
+        $component = Livewire::actingAs($this->user)
+            ->test(Edit::class, ['playlist' => $playlist])
+            ->set('newTag', 'sl');
+
+        $suggestions = $component->instance()
+            ->getAvailableTagSuggestionsProperty()
+            ->pluck('name')
+            ->all();
+
+        $this->assertSame(['sleepy'], $suggestions);
     }
 
     public function test_playlists_index_can_filter_by_tag(): void

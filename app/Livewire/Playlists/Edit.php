@@ -223,6 +223,26 @@ class Edit extends Component
         $this->resetValidation('newTag');
     }
 
+    public function getAvailableTagSuggestionsProperty()
+    {
+        $selectedTags = collect($this->tags)
+            ->map(fn (string $tag): string => Str::lower(trim($tag)))
+            ->filter()
+            ->all();
+
+        $search = trim($this->newTag);
+
+        return Tag::query()
+            ->orderBy('name')
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where('name', 'like', $search.'%');
+            })
+            ->get()
+            ->reject(fn (Tag $tag): bool => in_array(Str::lower($tag->name), $selectedTags, true))
+            ->take(10)
+            ->values();
+    }
+
     public function removeTag(int $index): void
     {
         if (! isset($this->tags[$index])) {

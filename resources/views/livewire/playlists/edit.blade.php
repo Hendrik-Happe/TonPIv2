@@ -99,10 +99,17 @@
                     type="text"
                     wire:model="newTag"
                     wire:keydown.enter.prevent="addTag"
+                    list="playlist-tag-suggestions"
+                    autocomplete="off"
                     placeholder="sleep"
                     class="grow"
                 >
             </label>
+            <datalist id="playlist-tag-suggestions">
+                @foreach($this->availableTagSuggestions as $tagSuggestion)
+                    <option value="{{ $tagSuggestion->name }}"></option>
+                @endforeach
+            </datalist>
             <p class="text-base-content/60 text-sm mt-2">{{ __('Einen Tag eingeben und mit Enter hinzufügen.') }}</p>
             @error('newTag')
                 <p class="text-error text-sm mt-1">{{ $message }}</p>
