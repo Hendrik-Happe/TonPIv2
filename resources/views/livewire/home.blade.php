@@ -44,39 +44,59 @@
             <input
                 type="text"
                 class="input input-bordered w-full"
-                placeholder="{{ __('Filter by tag...') }}"
+                placeholder="{{ __('Filter by tags...') }}"
                 wire:model.live="tagSearch"
                 @click="$el.parentElement.classList.add('dropdown-open')"
             />
-            <ul class="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow border border-base-300">
-                @if($tagSearch === '' && $tagFilter === '')
-                    <li><span class="opacity-50">{{ __('All tags') }}</span></li>
-                @endif
+            <div class="dropdown-content flex flex-col bg-base-100 rounded-box z-[1] w-full shadow border border-base-300">
+                <div class="p-2 border-b border-base-300">
+                    @if(empty($tagFilter))
+                        <span class="opacity-50 text-sm">{{ __('No tags selected') }}</span>
+                    @else
+                        <div class="flex flex-wrap gap-1">
+                            @foreach($this->availableTags->whereIn('id', $tagFilter) as $tag)
+                                <span class="badge badge-primary gap-1">
+                                    {{ $tag->name }}
+                                    <button 
+                                        wire:click="removeTag({{ $tag->id }})"
+                                        class="btn btn-ghost btn-xs"
+                                    >
+                                        ✕
+                                    </button>
+                                </span>
+                            @endforeach
+                        </div>
+                    @endif
+                </div>
 
-                @if($tagSearch === '' && $tagFilter !== '')
-                    <li>
-                        <button wire:click="clearTagFilter()" class="text-error">
-                            {{ __('Clear filter') }} ({{ $this->availableTags->find($tagFilter)?->name ?? '' }})
+                <ul class="menu p-2 max-h-60 overflow-y-auto">
+                    @if($this->filteredTags->isNotEmpty())
+                        @foreach($this->filteredTags as $tag)
+                            <li>
+                                <label class="flex items-center gap-2">
+                                    <input 
+                                        type="checkbox"
+                                        wire:click="toggleTag({{ $tag->id }})"
+                                        @checked(in_array($tag->id, $tagFilter))
+                                        class="checkbox checkbox-sm"
+                                    />
+                                    {{ $tag->name }}
+                                </label>
+                            </li>
+                        @endforeach
+                    @else
+                        <li><span class="opacity-50 text-sm">{{ __('No tags found') }}</span></li>
+                    @endif
+                </ul>
+
+                @if(!empty($tagFilter))
+                    <div class="border-t border-base-300 p-2">
+                        <button wire:click="clearTagFilter()" class="btn btn-sm btn-ghost w-full text-error">
+                            {{ __('Clear all filters') }}
                         </button>
-                    </li>
-                    <li><hr class="my-1"></li>
+                    </div>
                 @endif
-
-                @if($this->filteredTags->isNotEmpty())
-                    @foreach($this->filteredTags as $tag)
-                        <li>
-                            <button 
-                                wire:click="selectTag({{ $tag->id }})"
-                                @class(['active' => $tagFilter === (string)$tag->id])
-                            >
-                                {{ $tag->name }}
-                            </button>
-                        </li>
-                    @endforeach
-                @else
-                    <li><span class="opacity-50">{{ __('No tags found') }}</span></li>
-                @endif
-            </ul>
+            </div>
         </div>
     </div>
 

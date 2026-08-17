@@ -26,7 +26,8 @@ class RemoteControl extends Component
 
     public string $search = '';
 
-    public string $tagFilter = '';
+    /** @var array<int> */
+    public array $tagFilter = [];
 
     public string $tagSearch = '';
 
@@ -47,17 +48,27 @@ class RemoteControl extends Component
         $this->showTagDropdown = true;
     }
 
-    public function selectTag(int $tagId): void
+    public function toggleTag(int $tagId): void
     {
-        $this->tagFilter = (string) $tagId;
-        $this->tagSearch = '';
-        $this->showTagDropdown = false;
+        if (in_array($tagId, $this->tagFilter, true)) {
+            $this->removeTag($tagId);
+        } else {
+            $this->tagFilter[] = $tagId;
+            sort($this->tagFilter);
+            $this->resetPage();
+        }
+    }
+
+    public function removeTag(int $tagId): void
+    {
+        $this->tagFilter = array_filter($this->tagFilter, fn ($id) => $id !== $tagId);
+        $this->tagFilter = array_values($this->tagFilter);
         $this->resetPage();
     }
 
     public function clearTagFilter(): void
     {
-        $this->tagFilter = '';
+        $this->tagFilter = [];
         $this->tagSearch = '';
         $this->showTagDropdown = false;
         $this->resetPage();
@@ -96,10 +107,12 @@ class RemoteControl extends Component
                         });
                 });
             })
-            ->when($this->tagFilter !== '', function ($query): void {
-                $query->whereHas('tags', function ($tagsQuery): void {
-                    $tagsQuery->whereKey((int) $this->tagFilter);
-                });
+            ->when(! empty($this->tagFilter), function ($query): void {
+                foreach ($this->tagFilter as $tagId) {
+                    $query->whereHas('tags', function ($tagsQuery) use ($tagId): void {
+                        $tagsQuery->whereKey((int) $tagId);
+                    });
+                }
             })
             ->orderBy('name')
             ->paginate(12);

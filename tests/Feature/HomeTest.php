@@ -66,7 +66,7 @@ class HomeTest extends TestCase
         $kidsPlaylist->tags()->attach($kidsTag->id);
 
         Livewire::test(Home::class)
-            ->set('tagFilter', (string) $sleepTag->id)
+            ->call('toggleTag', $sleepTag->id)
             ->assertSee('Sleep Home')
             ->assertDontSee('Kids Home');
     }
@@ -82,15 +82,51 @@ class HomeTest extends TestCase
             ->assertDontSee('relaxation');
     }
 
-    public function test_home_can_select_tag_via_select_tag_method(): void
+    public function test_home_can_toggle_tag(): void
     {
         $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
         $sleepPlaylist = Playlist::factory()->create(['name' => 'Sleep Home']);
         $sleepPlaylist->tags()->attach($sleepTag->id);
 
         Livewire::test(Home::class)
-            ->call('selectTag', $sleepTag->id)
-            ->assertSee('Sleep Home');
+            ->call('toggleTag', $sleepTag->id)
+            ->assertSee('Sleep Home')
+            ->assertSet('tagFilter', [$sleepTag->id]);
+    }
+
+    public function test_home_can_remove_tag(): void
+    {
+        $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        $sleepPlaylist = Playlist::factory()->create(['name' => 'Sleep Home']);
+        $sleepPlaylist->tags()->attach($sleepTag->id);
+
+        Livewire::test(Home::class)
+            ->call('toggleTag', $sleepTag->id)
+            ->assertSet('tagFilter', [$sleepTag->id])
+            ->call('removeTag', $sleepTag->id)
+            ->assertSet('tagFilter', []);
+    }
+
+    public function test_home_can_filter_by_multiple_tags_and_logic(): void
+    {
+        $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        $relaxTag = Tag::factory()->create(['name' => 'relax', 'slug' => 'relax']);
+
+        $bothTagsPlaylist = Playlist::factory()->create(['name' => 'Both Tags']);
+        $bothTagsPlaylist->tags()->attach([$sleepTag->id, $relaxTag->id]);
+
+        $sleepOnlyPlaylist = Playlist::factory()->create(['name' => 'Sleep Only']);
+        $sleepOnlyPlaylist->tags()->attach($sleepTag->id);
+
+        $relaxOnlyPlaylist = Playlist::factory()->create(['name' => 'Relax Only']);
+        $relaxOnlyPlaylist->tags()->attach($relaxTag->id);
+
+        Livewire::test(Home::class)
+            ->call('toggleTag', $sleepTag->id)
+            ->call('toggleTag', $relaxTag->id)
+            ->assertSee('Both Tags')
+            ->assertDontSee('Sleep Only')
+            ->assertDontSee('Relax Only');
     }
 
     public function test_home_can_clear_tag_filter(): void
@@ -99,9 +135,9 @@ class HomeTest extends TestCase
         $normalPlaylist = Playlist::factory()->create(['name' => 'Normal Home']);
 
         Livewire::test(Home::class)
-            ->set('tagFilter', (string) $sleepTag->id)
+            ->call('toggleTag', $sleepTag->id)
             ->call('clearTagFilter')
-            ->assertSet('tagFilter', '')
+            ->assertSet('tagFilter', [])
             ->assertSet('tagSearch', '');
     }
 }

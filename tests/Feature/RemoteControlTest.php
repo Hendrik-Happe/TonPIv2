@@ -145,7 +145,7 @@ class RemoteControlTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(RemoteControl::class)
-            ->set('tagFilter', (string) $sleepTag->id)
+            ->call('toggleTag', $sleepTag->id)
             ->assertSee('Sleep Remote')
             ->assertDontSee('Kids Remote');
     }

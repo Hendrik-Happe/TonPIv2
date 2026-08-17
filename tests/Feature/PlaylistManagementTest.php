@@ -818,7 +818,7 @@ class PlaylistManagementTest extends TestCase
 
         Livewire::actingAs($this->user)
             ->test(Index::class)
-            ->set('tagFilter', (string) $sleepTag->id)
+            ->call('toggleTag', $sleepTag->id)
             ->assertSee('Sleep Playlist')
             ->assertDontSee('Kids Playlist');
     }
