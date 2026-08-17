@@ -28,6 +28,10 @@ class RemoteControl extends Component
 
     public string $tagFilter = '';
 
+    public string $tagSearch = '';
+
+    public bool $showTagDropdown = false;
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -35,6 +39,27 @@ class RemoteControl extends Component
 
     public function updatingTagFilter(): void
     {
+        $this->resetPage();
+    }
+
+    public function updatingTagSearch(): void
+    {
+        $this->showTagDropdown = true;
+    }
+
+    public function selectTag(int $tagId): void
+    {
+        $this->tagFilter = (string) $tagId;
+        $this->tagSearch = '';
+        $this->showTagDropdown = false;
+        $this->resetPage();
+    }
+
+    public function clearTagFilter(): void
+    {
+        $this->tagFilter = '';
+        $this->tagSearch = '';
+        $this->showTagDropdown = false;
         $this->resetPage();
     }
 
@@ -84,6 +109,17 @@ class RemoteControl extends Component
     public function availableTags()
     {
         return Tag::query()->orderBy('name')->get();
+    }
+
+    #[Computed]
+    public function filteredTags()
+    {
+        return Tag::query()
+            ->when($this->tagSearch !== '', function ($query): void {
+                $query->where('name', 'like', '%'.$this->tagSearch.'%');
+            })
+            ->orderBy('name')
+            ->get();
     }
 
     #[Computed]

@@ -70,4 +70,38 @@ class HomeTest extends TestCase
             ->assertSee('Sleep Home')
             ->assertDontSee('Kids Home');
     }
+
+    public function test_home_can_search_tags_by_name(): void
+    {
+        $sleepTag = Tag::factory()->create(['name' => 'sleepy time', 'slug' => 'sleepy-time']);
+        $relaxTag = Tag::factory()->create(['name' => 'relaxation', 'slug' => 'relaxation']);
+
+        Livewire::test(Home::class)
+            ->set('tagSearch', 'sleep')
+            ->assertSee('sleepy time')
+            ->assertDontSee('relaxation');
+    }
+
+    public function test_home_can_select_tag_via_select_tag_method(): void
+    {
+        $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        $sleepPlaylist = Playlist::factory()->create(['name' => 'Sleep Home']);
+        $sleepPlaylist->tags()->attach($sleepTag->id);
+
+        Livewire::test(Home::class)
+            ->call('selectTag', $sleepTag->id)
+            ->assertSee('Sleep Home');
+    }
+
+    public function test_home_can_clear_tag_filter(): void
+    {
+        $sleepTag = Tag::factory()->create(['name' => 'sleep', 'slug' => 'sleep']);
+        $normalPlaylist = Playlist::factory()->create(['name' => 'Normal Home']);
+
+        Livewire::test(Home::class)
+            ->set('tagFilter', (string) $sleepTag->id)
+            ->call('clearTagFilter')
+            ->assertSet('tagFilter', '')
+            ->assertSet('tagSearch', '');
+    }
 }

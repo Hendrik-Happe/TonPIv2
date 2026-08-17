@@ -40,12 +40,44 @@
             />
         </label>
 
-        <select class="select select-bordered w-full" wire:model.live="tagFilter">
-            <option value="">{{ __('All tags') }}</option>
-            @foreach($this->availableTags as $tag)
-                <option value="{{ $tag->id }}">{{ $tag->name }}</option>
-            @endforeach
-        </select>
+        <div class="dropdown dropdown-end w-full">
+            <input
+                type="text"
+                class="input input-bordered w-full"
+                placeholder="{{ __('Filter by tag...') }}"
+                wire:model.live="tagSearch"
+                @click="$el.parentElement.classList.add('dropdown-open')"
+            />
+            <ul class="dropdown-content menu bg-base-100 rounded-box z-[1] w-full p-2 shadow border border-base-300">
+                @if($tagSearch === '' && $tagFilter === '')
+                    <li><span class="opacity-50">{{ __('All tags') }}</span></li>
+                @endif
+
+                @if($tagSearch === '' && $tagFilter !== '')
+                    <li>
+                        <button wire:click="clearTagFilter()" class="text-error">
+                            {{ __('Clear filter') }} ({{ $this->availableTags->find($tagFilter)?->name ?? '' }})
+                        </button>
+                    </li>
+                    <li><hr class="my-1"></li>
+                @endif
+
+                @if($this->filteredTags->isNotEmpty())
+                    @foreach($this->filteredTags as $tag)
+                        <li>
+                            <button 
+                                wire:click="selectTag({{ $tag->id }})"
+                                @class(['active' => $tagFilter === (string)$tag->id])
+                            >
+                                {{ $tag->name }}
+                            </button>
+                        </li>
+                    @endforeach
+                @else
+                    <li><span class="opacity-50">{{ __('No tags found') }}</span></li>
+                @endif
+            </ul>
+        </div>
     </div>
 
     @if($this->playlists->isEmpty())
