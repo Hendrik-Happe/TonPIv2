@@ -178,6 +178,17 @@ class PlayerTest extends TestCase
         $this->assertEquals(0, $playerManager->getState()->volume_percentage);
     }
 
+    public function test_player_applies_saved_volume_on_startup(): void
+    {
+        $state = PlayerState::global();
+        $state->update(['volume_percentage' => 35]);
+
+        $playerManager = app(PlayerManager::class);
+        $playerManager->applyVolumeFromState();
+
+        $this->assertSame(35, $playerManager->getState()->volume_percentage);
+    }
+
     public function test_changing_playlist_resets_position(): void
     {
         $playerManager = app(PlayerManager::class);

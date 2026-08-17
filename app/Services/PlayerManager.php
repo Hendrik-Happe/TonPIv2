@@ -18,6 +18,18 @@ class PlayerManager
         $this->state = PlayerState::global();
         $this->fifoPath = config('player.player.fifo_path');
         $this->ensureFifoExists();
+        $this->applyVolumeFromState();
+    }
+
+    /**
+     * Apply the saved player volume to the system mixer on startup.
+     */
+    public function applyVolumeFromState(): void
+    {
+        $this->state = $this->state->fresh();
+        $volume = max(0, min(100, (int) ($this->state->volume_percentage ?? 100)));
+
+        $this->setVolume($volume);
     }
 
     /**
