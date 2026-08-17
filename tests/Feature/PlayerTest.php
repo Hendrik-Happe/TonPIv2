@@ -207,6 +207,32 @@ class PlayerTest extends TestCase
         $this->assertEquals(1, $state1->id);
     }
 
+    public function test_stale_playing_state_is_reset_when_no_process_is_running(): void
+    {
+        $playerManager = app(PlayerManager::class);
+
+        $playlist = Playlist::factory()
+            ->has(Track::factory()->count(1))
+            ->create(['name' => 'Stale State Playlist']);
+
+        $playerManager->playPlaylist($playlist);
+
+        $state = PlayerState::global();
+        $state->update([
+            'status' => 'playing',
+            'current_track_id' => $state->current_track_id,
+            'mplayer_pid' => 999999,
+            'expected_pid' => 999999,
+        ]);
+
+        $sanitizedState = $playerManager->getState();
+
+        $this->assertSame('stopped', $sanitizedState->status);
+        $this->assertNull($sanitizedState->current_track_id);
+        $this->assertNull($sanitizedState->mplayer_pid);
+        $this->assertNull($sanitizedState->expected_pid);
+    }
+
     public function test_livewire_player_component_renders(): void
     {
         $user = User::factory()->create();

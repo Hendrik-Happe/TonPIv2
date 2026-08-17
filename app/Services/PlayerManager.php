@@ -388,7 +388,22 @@ class PlayerManager
      */
     public function getState(): PlayerState
     {
-        return $this->state->fresh();
+        $state = $this->state->fresh();
+
+        $hasKnownProcess = $state->mplayer_pid !== null || $state->expected_pid !== null;
+
+        if (in_array($state->status, ['playing', 'paused'], true) && $hasKnownProcess && ! $this->isMplayerProcessRunningForState($state)) {
+            $state->update([
+                'status' => 'stopped',
+                'current_track_id' => null,
+                'mplayer_pid' => null,
+                'expected_pid' => null,
+            ]);
+
+            return $state->fresh();
+        }
+
+        return $state;
     }
 
     /**
@@ -468,11 +483,16 @@ class PlayerManager
      */
     private function isMplayerProcessRunning(): bool
     {
-        if (! $this->state->mplayer_pid) {
+        return $this->isMplayerProcessRunningForState($this->state);
+    }
+
+    private function isMplayerProcessRunningForState(PlayerState $state): bool
+    {
+        if (! $state->mplayer_pid) {
             return false;
         }
 
-        return file_exists('/proc/'.$this->state->mplayer_pid);
+        return file_exists('/proc/'.$state->mplayer_pid);
     }
 
     /**
