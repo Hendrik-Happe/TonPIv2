@@ -26,8 +26,11 @@ class Create extends Component
     #[Validate('nullable|integer|min:0|max:100')]
     public int|string|null $volumeProfile = null;
 
-    #[Validate('nullable|string|max:500')]
-    public string $tags = '';
+    #[Validate('array|max:20')]
+    public array $tags = [];
+
+    #[Validate('nullable|string|max:50')]
+    public string $newTag = '';
 
     public ?string $rfidReadFeedback = null;
 
@@ -175,13 +178,51 @@ class Create extends Component
         $this->rfidReadFeedback = sprintf('RFID UID %s wurde übernommen.', $normalizedUid);
     }
 
+    public function addTag(): void
+    {
+        $this->validateOnly('newTag');
+
+        $tagName = trim($this->newTag);
+
+        if ($tagName === '') {
+            return;
+        }
+
+        if (str_contains($tagName, ',')) {
+            $this->addError('newTag', 'Bitte nur einen Tag eingeben und mit Enter bestätigen.');
+
+            return;
+        }
+
+        $tagAlreadyExists = collect($this->tags)
+            ->contains(fn (string $existingTag): bool => Str::lower($existingTag) === Str::lower($tagName));
+
+        if (! $tagAlreadyExists) {
+            $this->tags[] = $tagName;
+        }
+
+        $this->reset('newTag');
+        $this->resetValidation('newTag');
+    }
+
+    public function removeTag(int $index): void
+    {
+        if (! isset($this->tags[$index])) {
+            return;
+        }
+
+        unset($this->tags[$index]);
+        $this->tags = array_values($this->tags);
+    }
+
     public function save()
     {
         $this->validate([
             'name' => 'required|string|max:255',
             'rfidUid' => 'nullable|string|max:255|unique:playlists,rfid_uid',
             'volumeProfile' => 'nullable|integer|min:0|max:100',
-            'tags' => 'nullable|string|max:500',
+            'tags' => 'array|max:20',
+            'tags.*' => 'string|max:50',
             'coverImage' => 'nullable|image|max:5120',
             'tracks' => 'required|array|min:1',
         ]);
@@ -242,7 +283,7 @@ class Create extends Component
 
     private function syncPlaylistTags(Playlist $playlist): void
     {
-        $tagNames = collect(explode(',', $this->tags))
+        $tagNames = collect($this->tags)
             ->map(fn (string $name): string => trim($name))
             ->filter(fn (string $name): bool => $name !== '')
             ->unique(fn (string $name): string => Str::lower($name))

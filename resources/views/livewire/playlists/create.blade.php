@@ -97,15 +97,36 @@
             <label class="label">
                 <span class="label-text">Tags</span>
             </label>
-            <input type="text" wire:model="tags" placeholder="sleep, kids, relax" class="input input-bordered" />
+            <input
+                type="text"
+                wire:model="newTag"
+                wire:keydown.enter.prevent="addTag"
+                placeholder="sleep"
+                class="input input-bordered"
+            />
             <label class="label">
-                <span class="label-text-alt">Kommagetrennt. Beispiel: sleep, bedtime, calm</span>
+                <span class="label-text-alt">Einen Tag eingeben und mit Enter hinzufügen.</span>
             </label>
-            @error('tags')
+            @error('newTag')
                 <label class="label">
                     <span class="label-text-alt text-error">{{ $message }}</span>
                 </label>
             @enderror
+
+            @if (count($tags) > 0)
+                <div class="mt-2 flex flex-wrap gap-2">
+                    @foreach ($tags as $index => $tag)
+                        <button
+                            type="button"
+                            wire:click="removeTag({{ $index }})"
+                            class="badge badge-outline gap-2 py-3"
+                        >
+                            <span>{{ $tag }}</span>
+                            <span aria-hidden="true">x</span>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <!-- Upload Audio Files Section -->

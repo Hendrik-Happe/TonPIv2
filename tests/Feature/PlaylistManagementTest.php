@@ -296,11 +296,21 @@ class PlaylistManagementTest extends TestCase
     {
         $audio = UploadedFile::fake()->create('track-1.mp3', 1024, 'audio/mpeg');
 
-        Livewire::actingAs($this->user)
+        $component = Livewire::actingAs($this->user)
             ->test(Create::class)
             ->set('name', 'Tagged Playlist')
-            ->set('tags', 'sleep, Kids , bedtime, sleep')
-            ->set('uploadedFiles', [$audio])
+            ->set('newTag', 'sleep')
+            ->call('addTag')
+            ->set('newTag', 'Kids')
+            ->call('addTag')
+            ->set('newTag', 'bedtime')
+            ->call('addTag')
+            ->set('newTag', 'sleep')
+            ->call('addTag')
+            ->assertSet('tags', ['sleep', 'Kids', 'bedtime'])
+            ->set('uploadedFiles', [$audio]);
+
+        $component
             ->call('save')
             ->assertRedirect('/playlists');
 
@@ -310,6 +320,16 @@ class PlaylistManagementTest extends TestCase
         $this->assertDatabaseHas('tags', ['slug' => 'kids', 'name' => 'Kids']);
         $this->assertDatabaseHas('tags', ['slug' => 'bedtime', 'name' => 'bedtime']);
         $this->assertCount(3, $playlist->tags);
+    }
+
+    public function test_create_tag_input_rejects_comma_separated_values(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(Create::class)
+            ->set('newTag', 'sleep, kids')
+            ->call('addTag')
+            ->assertHasErrors(['newTag'])
+            ->assertSet('tags', []);
     }
 
     public function test_reordered_tracks_are_saved_in_correct_order(): void
@@ -728,7 +748,13 @@ class PlaylistManagementTest extends TestCase
 
         Livewire::actingAs($this->user)
             ->test(Edit::class, ['playlist' => $playlist])
-            ->set('tags', 'new, focus')
+            ->set('newTag', 'new')
+            ->call('addTag')
+            ->set('newTag', 'focus')
+            ->call('addTag')
+            ->set('newTag', 'old')
+            ->call('addTag')
+            ->call('removeTag', 0)
             ->call('save')
             ->assertRedirect('/');
 

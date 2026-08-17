@@ -97,15 +97,31 @@
                 <span class="label">{{ __('Tags') }}</span>
                 <input
                     type="text"
-                    wire:model="tags"
-                    placeholder="sleep, kids, relax"
+                    wire:model="newTag"
+                    wire:keydown.enter.prevent="addTag"
+                    placeholder="sleep"
                     class="grow"
                 >
             </label>
-            <p class="text-base-content/60 text-sm mt-2">{{ __('Kommagetrennt. Beispiel: sleep, bedtime, calm') }}</p>
-            @error('tags')
+            <p class="text-base-content/60 text-sm mt-2">{{ __('Einen Tag eingeben und mit Enter hinzufügen.') }}</p>
+            @error('newTag')
                 <p class="text-error text-sm mt-1">{{ $message }}</p>
             @enderror
+
+            @if(count($tags) > 0)
+                <div class="mt-2 flex flex-wrap gap-2">
+                    @foreach($tags as $index => $tag)
+                        <button
+                            type="button"
+                            wire:click="removeTag({{ $index }})"
+                            class="badge badge-outline gap-2 py-3"
+                        >
+                            <span>{{ $tag }}</span>
+                            <span aria-hidden="true">x</span>
+                        </button>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <!-- File Upload -->
