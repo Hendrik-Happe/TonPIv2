@@ -183,6 +183,7 @@ class PlayerManager
 
     /**
      * Toggle between play and pause.
+     * If stopped, resume from the current position or start the stored playlist from the beginning.
      */
     public function togglePlayPause(
         string $source = 'system',
@@ -195,6 +196,13 @@ class PlayerManager
             $this->pause($source, $trigger, $rfidUid);
         } elseif ($this->state->isPaused()) {
             $this->resume($source, $trigger, $rfidUid);
+        } elseif ($this->state->isStopped()) {
+            // When stopped, try to resume the saved playlist from the beginning
+            $playlist = $this->state->currentPlaylist;
+
+            if ($playlist) {
+                $this->playPlaylist($playlist, $source, $trigger, $rfidUid);
+            }
         }
     }
 

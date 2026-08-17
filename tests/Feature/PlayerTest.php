@@ -244,6 +244,47 @@ class PlayerTest extends TestCase
         $this->assertNull($sanitizedState->expected_pid);
     }
 
+    public function test_toggle_play_pause_on_stopped_starts_saved_playlist(): void
+    {
+        $playerManager = app(PlayerManager::class);
+
+        $playlist = Playlist::factory()
+            ->has(Track::factory()->count(2))
+            ->create(['name' => 'Restart Playlist']);
+
+        // Start playing the playlist
+        $playerManager->playPlaylist($playlist);
+        $firstTrackId = $playerManager->getState()->current_track_id;
+
+        // Simulate system shutdown: set status to playing with a stale (non-existent) PID
+        // This mimics what happens when the system crashes mid-playback
+        $state = PlayerState::global();
+        $state->update([
+            'status' => 'playing',
+            'mplayer_pid' => 999999,
+            'expected_pid' => 999999,
+        ]);
+
+        // After a fresh getState(), the stale-state reset should trigger
+        // because status is playing but PID 999999 doesn't exist
+        $resetState = $playerManager->getState();
+        $this->assertSame('stopped', $resetState->status);
+        $this->assertNull($resetState->current_track_id);
+        // The playlist ID should still be saved so we can resume it
+        $this->assertSame($playlist->id, $resetState->current_playlist_id);
+
+        // Now press play - should start the saved playlist from the beginning
+        $playerManager->togglePlayPause('ui', 'manual');
+
+        $resumedState = $playerManager->getState();
+        $this->assertSame('playing', $resumedState->status);
+        $this->assertSame($playlist->id, $resumedState->current_playlist_id);
+        $this->assertEquals(0, $resumedState->current_position);
+        $this->assertNotNull($resumedState->current_track_id);
+
+        Queue::assertPushed(PlayTrack::class);
+    }
+
     public function test_livewire_player_component_renders(): void
     {
         $user = User::factory()->create();
