@@ -236,6 +236,9 @@ class PlayerTest extends TestCase
             'expected_pid' => 999999,
         ]);
 
+        $this->assertSame('playing', $playerManager->getState()->status);
+        $this->travel(20)->seconds();
+
         $sanitizedState = $playerManager->getState();
 
         $this->assertSame('stopped', $sanitizedState->status);
@@ -267,6 +270,8 @@ class PlayerTest extends TestCase
 
         // After a fresh getState(), the stale-state reset should trigger
         // because status is playing but PID 999999 doesn't exist
+        $playerManager->getState();
+        $this->travel(20)->seconds();
         $resetState = $playerManager->getState();
         $this->assertSame('stopped', $resetState->status);
         $this->assertNull($resetState->current_track_id);

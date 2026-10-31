@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Cache;
 
 class PlayerManager
 {
+    private const DEAD_PROCESS_GRACE_SECONDS = 15;
+
     private PlayerState $state;
 
     private string $fifoPath;
@@ -376,10 +378,7 @@ class PlayerManager
         $freshState = $this->state->fresh();
 
         // Ignore if this is not the expected process (e.g. process was killed intentionally)
-        // A status poll may have reset the state just before the monitor reported the natural end.
-        $wasResetByPoll = $pid > 0 && Cache::pull('player.reset_pid') === $pid && $freshState->status === 'stopped';
-
-        if ($pid > 0 && $freshState->expected_pid !== $pid && ! $wasResetByPoll) {
+        if ($pid > 0 && $freshState->expected_pid !== $pid) {
             \Log::info('Ignoring track-finished from stale PID', [
                 'received_pid' => $pid,
                 'expected_pid' => $freshState->expected_pid,
@@ -417,7 +416,16 @@ class PlayerManager
         $hasKnownProcess = $state->mplayer_pid !== null || $state->expected_pid !== null;
 
         if (in_array($state->status, ['playing', 'paused'], true) && $hasKnownProcess && ! $this->isMplayerProcessRunningForState($state)) {
-            Cache::put('player.reset_pid', (int) ($state->expected_pid ?? $state->mplayer_pid), 15);
+            // Natural track ends are handled by the monitor process; only reset after a grace period (crash).
+            $deadSince = Cache::add('player.dead_since', now()->timestamp, 60)
+                ? now()->timestamp
+                : (int) Cache::get('player.dead_since', now()->timestamp);
+
+            if (now()->timestamp - $deadSince < self::DEAD_PROCESS_GRACE_SECONDS) {
+                return $state;
+            }
+
+            Cache::forget('player.dead_since');
 
             $state->update([
                 'status' => 'stopped',
@@ -437,6 +445,8 @@ class PlayerManager
      */
     public function registerMplayerPid(int $pid): void
     {
+        Cache::forget('player.dead_since');
+
         $this->state->update([
             'mplayer_pid' => $pid,
             'expected_pid' => $pid,
