@@ -60,6 +60,21 @@ class PlaylistManagementTest extends TestCase
             ->assertDontSee('Zulu Hidden');
     }
 
+    public function test_playlists_index_keeps_filters_outside_the_create_link(): void
+    {
+        $html = Livewire::actingAs($this->user)
+            ->test(Index::class)
+            ->html();
+        $document = new \DOMDocument;
+        $document->loadHTML($html, LIBXML_NOERROR | LIBXML_NOWARNING);
+        $xpath = new \DOMXPath($document);
+
+        $this->assertSame(
+            0,
+            $xpath->query('//a[@href="/playlists/create"]//div[contains(concat(" ", normalize-space(@class), " "), " grid ")]')->length,
+        );
+    }
+
     public function test_authenticated_user_can_view_create_playlist_page(): void
     {
         $response = $this->actingAs($this->user)->get('/playlists/create');

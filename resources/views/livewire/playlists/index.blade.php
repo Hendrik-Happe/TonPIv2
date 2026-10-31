@@ -1,11 +1,13 @@
 <div class="max-w-6xl mx-auto p-6">
     <div class="flex items-center justify-between mb-6">
-            <h1 class="text-3xl font-bold">{{ __('Playlists') }}</h1>
-            <a href="/playlists/create" wire:navigate class="btn btn-primary">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                </svg>
-                {{ __('Create New Playlist') }}
+        <h1 class="text-3xl font-bold">{{ __('Playlists') }}</h1>
+        <a href="/playlists/create" wire:navigate class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            {{ __('Create New Playlist') }}
+        </a>
+    </div>
 
     <div class="mb-6 grid grid-cols-1 gap-3 md:grid-cols-3">
         <label class="input input-bordered md:col-span-2">
